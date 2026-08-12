@@ -1,89 +1,75 @@
+
 <p align="center">
-  <img src="https://readme-typing-svg.herokuapp.com?font=Righteous&color=6366F1&size=48&center=true&vCenter=true&width=700&lines=Renderora;Cloud+Animation+Platform" alt="Renderora" />
+  <img src="https://readme-typing-svg.herokuapp.com?font=Righteous&color=6366F1&size=50&center=true&vCenter=true&width=750&lines=Renderora;Cloud-Native+Animation+%26+Plotting+Platform" alt="Renderora" />
 </p>
 
 <p align="center">
-  <strong>A modern, browser-based cloud platform for rendering Manim & Matplotlib math animations and plots in real time.</strong>
+  <strong>A high-performance, containerized cloud platform for real-time Manim math animations, Matplotlib plots, and dynamic interactive charts.</strong>
 </p>
 
 <p align="center">
+  <a href="https://renderora.onrender.com">
+    <img src="https://img.shields.io/badge/Live_Demo-https%3A%2F%2Frenderora.onrender.com-6366F1?style=for-the-badge&logo=render&logoColor=white" alt="Live Demo" />
+  </a>
+  <a href="https://github.com/jawadahmadliaqat-dot/Renderora">
+    <img src="https://img.shields.io/github/stars/jawadahmadliaqat-dot/Renderora?style=for-the-badge&color=f1c40f" alt="Stars" />
+  </a>
+  <img src="https://img.shields.io/badge/Docker-Supported-2496ED?style=for-the-badge&logo=docker&logoColor=white" alt="Docker" />
   <img src="https://img.shields.io/badge/Python-3.9+-3776AB?style=for-the-badge&logo=python&logoColor=white" alt="Python" />
   <img src="https://img.shields.io/badge/FastAPI-009688?style=for-the-badge&logo=fastapi&logoColor=white" alt="FastAPI" />
-  <img src="https://img.shields.io/badge/Manim-Animation-FF69B4?style=for-the-badge" alt="Manim" />
-  <img src="https://img.shields.io/badge/Tailwind_CSS-38B2AC?style=for-the-badge&logo=tailwind-css&logoColor=white" alt="Tailwind CSS" />
-  <img src="https://img.shields.io/badge/Chart.js-FF6384?style=for-the-badge&logo=chartdotjs&logoColor=white" alt="Chart.js" />
 </p>
 
 ---
 
 ## 📌 Table of Contents
-- [About Renderora](#-about-renderora)
+
+- [Overview](#-overview)
 - [Key Features](#-key-features)
-- [Web Interface Preview](#-web-interface-preview)
-- [Built-In Templates](#-built-in-templates)
-- [Tech Stack](#-tech-stack)
+- [Live Demo & Cloud Access](#-live-demo--cloud-access)
 - [System Architecture](#-system-architecture)
-- [Getting Started](#-getting-started)
-- [API Endpoints](#-api-endpoints)
-- [Disclaimer & License](#-disclaimer--license)
+- [Core Templates & Examples](#-core-templates--examples)
+- [Tech Stack](#-tech-stack)
+- [REST API Specification](#-rest-api-specification)
+- [Local Development & Docker Setup](#-local-development--docker-setup)
+- [Deployment Guide](#-deployment-guide)
+- [Troubleshooting & Performance](#-troubleshooting--performance)
+- [Contributing](#-contributing)
+- [License](#-license)
 
 ---
 
-## ⚡ About Renderora
+## ⚡ Overview
 
-**Renderora** is a light-speed, full-featured cloud animation platform. It provides developers, mathematicians, and educators with an in-browser code studio to write Python-based **Manim** scene code, **Matplotlib** figures/animations, and interactive **Chart.js** data feeds—rendering video/image outputs via a powerful FastAPI backend service.
+**Renderora** is an end-to-end cloud-native studio designed for students, educators, software engineers, and content creators. It eliminates the hassle of configuring complex local LaTeX, FFmpeg, and Python environments by shifting video rendering and mathematical plotting into an accessible web platform.
+
+Powered by a containerized **FastAPI** backend and an **in-browser Monaco-style editor**, users can seamlessly write **Manim (Community Edition)** code, synthesize **Matplotlib** graphics, or manipulate real-time **Chart.js** telemetry feeds.
 
 ---
 
 ## ✨ Key Features
 
-- **💻 In-Browser Studio:** Integrated dark-themed editor featuring live line numbering, syntax updates, and quick execution (`Ctrl + Enter`).
-- **🎬 Dual Rendering Pipeline:** Automatically routes requests to render **MP4 videos** (Manim & Matplotlib `FuncAnimation`) or **PNG plots**.
-- **📊 Interactive Live Charts:** Built-in JS chart execution powered by Chart.js with real-time parameter controls (Frequency/Amplitude tweak sliders).
-- **📂 Preset Templates:** Instant starter templates ranging from simple geometric shapes to stickman animations, math equations, sine waves, and particle hearts.
-- **📱 Fully Responsive UI:** Tailored mobile and desktop layout with tab switches between editor and preview modes.
-- **🔐 Integrated OAuth:** Built-in Google Single Sign-On flow (`/auth/google`) for user authentication before triggering render tasks.
-- **💾 Local State & Export:** Auto-saves draft code directly to `localStorage` and provides direct high-speed download links for final rendered media.
+- **🌐 Live Cloud Rendering Engine:** Offloads resource-heavy mathematical video encoding (Manim) and image generation (Matplotlib) to cloud servers.
+- **🐳 Fully Containerized (Docker):** Bundles FFmpeg, Cairo, LaTeX dependencies, and Python runtimes for deterministic execution across environments.
+- **👨‍💻 Modern Web Editor Studio:**
+  - Dynamic line numbering & scroll-sync.
+  - Quick render shortcut (`Ctrl + Enter` / `Cmd + Enter`).
+  - Auto-persisting draft storage via `localStorage`.
+  - Mobile-responsive layout switching between Editor & Preview viewports.
+- **📊 Real-time Interactive Control Panel:** Live parameter sliders (Frequency, Amplitude) bound to dynamic client-side telemetry rendering via Chart.js.
+- **🔑 Google OAuth Single Sign-On:** Pre-integrated authentication pipeline to manage access controls before dispatching heavy computation workloads.
+- **📥 One-Click Export:** Native streaming media previews with instant high-speed file download handlers for MP4 videos and PNG figures.
 
 ---
 
-## 📸 Web Interface Preview
+## 🚀 Live Demo & Cloud Access
 
-<p align="center">
-  <img src="https://via.placeholder.com/800x420.png?text=Renderora+Cloud+Animation+Studio" width="100%" alt="Renderora Interface" />
-</p>
+The platform is deployed and live on Render Cloud Infrastructure:
 
----
+- **🌐 Web Platform App:** [https://renderora.onrender.com](https://renderora.onrender.com)
+- **📚 Interactive API Docs (Swagger):** [https://renderora.onrender.com/docs](https://renderora.onrender.com/docs)
+- **📖 Alternative Docs (ReDoc):** [https://renderora.onrender.com/redoc](https://renderora.onrender.com/redoc)
 
-## 📂 Built-In Templates
-
-Renderora comes pre-packed with sample codes for fast prototyping:
-
-| Template | Type | Description |
-| :--- | :--- | :--- |
-| **Circle** | Manim | Basic expanding pink circle scene |
-| **Square → Circle** | Manim | Smooth shape transformation animation |
-| **Math Formula** | Manim | LaTeX equation rendering ($e^{i\pi} + 1 = 0$) |
-| **Stickman** | Manim | Animated walking stick figure scene |
-| **Sine Wave** | Matplotlib | High-contrast static plot render |
-| **Anim Wave** | Matplotlib | Animated wave using `FuncAnimation` |
-| **Live Chart** | Chart.js | Real-time browser-rendered interactive line chart |
-| **Particle Heart** | Matplotlib | Animated beating heart particle effect |
-
----
-
-## 💻 Tech Stack
-
-### Frontend
-- **HTML5 & Vanilla JavaScript** (ES6+)
-- **Tailwind CSS** (via CDN for sleek dark UI)
-- **Chart.js** (for client-side real-time data visualization)
-
-### Backend
-- **Python 3.9+**
-- **FastAPI** (Async Web Framework)
-- **Manim Community Edition** (Math animation engine)
-- **Matplotlib & NumPy** (Plotting and array calculations)
+> 💡 **Free Instance Notice:** The server instance automatically spins down during periods of inactivity. If accessing after a pause, please allow **30–50 seconds** for the cloud container to initialize.
 
 ---
 
