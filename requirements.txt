@@ -1,0 +1,8 @@
+fastapi
+uvicorn[standard]
+gradio
+requests
+python-dotenv
+matplotlib
+pydantic
+manim

@@ -1,0 +1,544 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+    <title>Renderora | Cloud Animation Platform</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
+        
+        body { font-family: 'Inter', sans-serif; }
+        .mono { font-family: 'JetBrains Mono', monospace; }
+        
+        .editor-container {
+            display: flex;
+            background-color: #0b0f19;
+        }
+        #line-numbers {
+            user-select: none;
+            text-align: right;
+            padding: 1rem 0.6rem;
+            background-color: #0b0f19;
+            color: #4b5563;
+            font-size: 0.75rem;
+            line-height: 1.5rem;
+            border-right: 1px solid #1e293b;
+            overflow: hidden;
+            min-width: 2.5rem;
+        }
+        #code-editor {
+            resize: none;
+            background: transparent;
+            white-space: pre;
+            overflow-wrap: normal;
+            overflow-x: auto;
+            line-height: 1.5rem;
+            font-size: 0.8rem;
+            tab-size: 4;
+            color: #e2e8f0;
+            -webkit-overflow-scrolling: touch;
+        }
+        ::-webkit-scrollbar { width: 5px; height: 5px; }
+        ::-webkit-scrollbar-track { background: #0f172a; }
+        ::-webkit-scrollbar-thumb { background: #334155; border-radius: 3px; }
+
+        @media (max-width: 768px) {
+            #line-numbers { display: none; }
+            #code-editor { font-size: 0.78rem; padding: 0.75rem !important; }
+        }
+    </style>
+</head>
+<body class="bg-slate-950 text-white h-screen flex flex-col overflow-hidden">
+
+    <!-- Header -->
+    <header class="bg-slate-900 border-b border-slate-800 px-3 sm:px-5 py-2.5 flex justify-between items-center shrink-0 gap-2">
+        <div class="flex items-center gap-2 min-w-0">
+            <div class="w-8 h-8 rounded-lg bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center font-bold text-sm shadow shrink-0">⚡</div>
+            <div class="min-w-0">
+                <h1 class="text-sm sm:text-base font-bold truncate">Renderora</h1>
+                <p class="text-[9px] text-slate-400 hidden sm:block -mt-0.5">Cloud Animation Platform</p>
+            </div>
+        </div>
+
+        <div class="flex items-center gap-1.5 sm:gap-2 shrink-0">
+            <select id="template-select" class="bg-slate-800 text-xs text-slate-200 px-2 py-1.5 rounded-lg border border-slate-700 max-w-[110px] sm:max-w-none">
+                <option value="">📂 Templates</option>
+                <option value="circle">Circle</option>
+                <option value="square">Square→Circle</option>
+                <option value="math">Math Formula</option>
+                <option value="walking">Stickman</option>
+                <option value="matplotlib">Sine Wave</option>
+                <option value="matplotlib_anim">Anim Wave</option>
+                <option value="livechart">Live Chart</option>
+                <option value="heart">Particle Heart</option>
+            </select>
+
+            <button id="save-btn" class="bg-slate-800 hover:bg-slate-700 text-xs px-2.5 py-1.5 rounded-lg border border-slate-700">💾</button>
+            <button id="clear-btn" class="bg-slate-800 hover:bg-slate-700 text-xs px-2.5 py-1.5 rounded-lg border border-slate-700">🗑️</button>
+
+            <div id="auth-container">
+                <button id="login-btn" class="bg-white text-gray-800 px-2.5 sm:px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1">
+                    <span class="hidden sm:inline">Sign in</span>
+                    <span class="sm:hidden">Login</span>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- Mobile Tab Switcher -->
+    <div class="flex md:hidden border-b border-slate-800 bg-slate-900 shrink-0">
+        <button id="tab-editor" class="flex-1 py-2.5 text-sm font-medium text-indigo-400 border-b-2 border-indigo-500">Editor</button>
+        <button id="tab-preview" class="flex-1 py-2.5 text-sm font-medium text-slate-400 border-b-2 border-transparent">Preview</button>
+    </div>
+
+    <!-- Main Content -->
+    <main class="flex-1 flex flex-col md:flex-row overflow-hidden">
+
+        <!-- Editor Panel -->
+        <div id="editor-panel" class="flex flex-col bg-slate-900 w-full md:w-1/2 md:border-r border-slate-800 h-full">
+            <div class="bg-slate-950 px-3 py-2 border-b border-slate-800 flex justify-between items-center shrink-0">
+                <div class="flex items-center gap-1.5">
+                    <span class="w-2.5 h-2.5 rounded-full bg-red-500"></span>
+                    <span class="w-2.5 h-2.5 rounded-full bg-yellow-500"></span>
+                    <span class="w-2.5 h-2.5 rounded-full bg-green-500"></span>
+                    <span class="ml-1.5 mono text-xs text-slate-400">scene.py</span>
+                </div>
+                <div class="flex items-center gap-2">
+                    <span id="line-count" class="text-[10px] text-slate-500 hidden sm:inline">1 line</span>
+                    <button id="render-btn" class="bg-gradient-to-r from-indigo-600 to-purple-600 active:scale-95 px-4 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1 shadow">
+                        ▶ Render
+                    </button>
+                </div>
+            </div>
+            
+            <div class="editor-container flex-1 overflow-hidden">
+                <div id="line-numbers" class="mono hidden md:block">1</div>
+                <textarea id="code-editor" class="flex-1 p-3 focus:outline-none mono w-full h-full" spellcheck="false" placeholder="Write your Manim or Matplotlib code here..."></textarea>
+            </div>
+
+            <div class="bg-slate-950 border-t border-slate-800 px-3 py-1 text-[10px] text-slate-500 flex justify-between shrink-0">
+                <span>Python • Manim • Matplotlib</span>
+                <span class="hidden sm:inline">Ctrl + Enter to render</span>
+            </div>
+        </div>
+
+        <!-- Preview Panel -->
+        <div id="preview-panel" class="flex flex-col bg-slate-900 w-full md:w-1/2 h-full hidden md:flex">
+            <div class="bg-slate-950 px-3 py-2 border-b border-slate-800 flex justify-between items-center shrink-0">
+                <span class="text-sm font-medium text-slate-300">🎬 Output Preview</span>
+                <button id="close-mobile-preview" class="md:hidden text-xs bg-slate-800 px-3 py-1 rounded-lg border border-slate-700">← Back to Editor</button>
+            </div>
+
+            <div id="step4-controls" class="bg-slate-950 border-b border-slate-800 p-2.5 flex flex-wrap items-center gap-3 text-xs shrink-0 hidden">
+                <span class="font-semibold text-indigo-400">🎛 Live</span>
+                <div class="flex items-center gap-1.5">
+                    <label class="text-slate-400">Freq</label>
+                    <input type="range" id="param-freq" min="0.1" max="2.0" step="0.1" value="0.2" class="accent-indigo-500 w-16">
+                    <span id="val-freq" class="text-indigo-300 mono text-[10px] w-6">0.2</span>
+                </div>
+                <div class="flex items-center gap-1.5">
+                    <label class="text-slate-400">Amp</label>
+                    <input type="range" id="param-amp" min="0.5" max="3.0" step="0.1" value="1.0" class="accent-indigo-500 w-16">
+                    <span id="val-amp" class="text-indigo-300 mono text-[10px] w-6">1.0</span>
+                </div>
+            </div>
+
+            <div class="flex-1 bg-slate-950 flex flex-col items-center justify-center relative overflow-hidden p-3">
+                <div id="preview-placeholder" class="text-center px-4">
+                    <div class="w-14 h-14 mx-auto mb-3 rounded-2xl bg-slate-900 border border-slate-800 flex items-center justify-center text-xl">🎞️</div>
+                    <p class="text-slate-400 text-sm">Ready to render</p>
+                    <p class="text-slate-600 text-xs mt-1">Tap <span class="text-indigo-400">Render</span> to start</p>
+                </div>
+                
+                <video id="output-video" class="w-full h-full object-contain hidden rounded-lg" controls autoplay loop></video>
+                <img id="output-image" class="w-full h-full object-contain hidden rounded-lg" alt="Rendered Plot" />
+                <canvas id="myChart" class="w-full h-full hidden"></canvas>
+            </div>
+
+            <div id="action-bar" class="px-3 py-2 border-t border-slate-800 flex justify-between items-center shrink-0 hidden">
+                <span class="text-xs text-emerald-400 font-medium flex items-center gap-1.5">
+                    <span class="w-1.5 h-1.5 rounded-full bg-emerald-400"></span> Success
+                </span>
+                <a id="download-btn" href="#" download class="bg-indigo-600 active:scale-95 px-3 py-1.5 rounded-lg text-xs font-semibold">
+                    ⬇ Download
+                </a>
+            </div>
+
+            <div id="error-box" class="mx-3 mb-3 bg-red-950/40 border border-red-500/30 rounded-lg p-2.5 text-red-300 mono text-xs hidden overflow-y-auto max-h-32">
+                <div class="font-bold text-red-400 mb-1">❌ Error</div>
+                <p id="error-text" class="whitespace-pre-wrap"></p>
+            </div>
+        </div>
+    </main>
+
+    <!-- Toast -->
+    <div id="toast" class="fixed bottom-5 left-1/2 -translate-x-1/2 bg-slate-800 border border-slate-700 text-sm px-4 py-2.5 rounded-xl shadow-2xl transform translate-y-20 opacity-0 transition-all duration-300 z-50 flex items-center gap-2 max-w-[90vw]">
+        <span id="toast-icon">✅</span>
+        <span id="toast-msg">Saved</span>
+    </div>
+
+<script>
+    const renderBtn = document.getElementById('render-btn');
+    const codeTextarea = document.getElementById('code-editor');
+    const lineNumbers = document.getElementById('line-numbers');
+    const lineCount = document.getElementById('line-count');
+    const previewPlaceholder = document.getElementById('preview-placeholder');
+    const outputVideo = document.getElementById('output-video');
+    const outputImage = document.getElementById('output-image');
+    const chartCanvas = document.getElementById('myChart');
+    const errorBox = document.getElementById('error-box');
+    const errorText = document.getElementById('error-text');
+    const templateSelect = document.getElementById('template-select');
+    const actionBar = document.getElementById('action-bar');
+    const downloadBtn = document.getElementById('download-btn');
+    const loginBtn = document.getElementById('login-btn');
+    const authContainer = document.getElementById('auth-container');
+    const step4Controls = document.getElementById('step4-controls');
+    const paramFreq = document.getElementById('param-freq');
+    const paramAmp = document.getElementById('param-amp');
+    const valFreq = document.getElementById('val-freq');
+    const valAmp = document.getElementById('val-amp');
+    const saveBtn = document.getElementById('save-btn');
+    const clearBtn = document.getElementById('clear-btn');
+    const toast = document.getElementById('toast');
+    const toastMsg = document.getElementById('toast-msg');
+    const toastIcon = document.getElementById('toast-icon');
+    const editorPanel = document.getElementById('editor-panel');
+    const previewPanel = document.getElementById('preview-panel');
+    const tabEditor = document.getElementById('tab-editor');
+    const tabPreview = document.getElementById('tab-preview');
+    const closeMobilePreview = document.getElementById('close-mobile-preview');
+
+    let isUserLoggedIn = false;
+
+    function showToast(message, icon = "✅") {
+        toastMsg.textContent = message;
+        toastIcon.textContent = icon;
+        toast.classList.remove('translate-y-20', 'opacity-0');
+        setTimeout(() => toast.classList.add('translate-y-20', 'opacity-0'), 2200);
+    }
+
+    function updateLineNumbers() {
+        const lines = codeTextarea.value.split('\n').length;
+        let html = '';
+        for (let i = 1; i <= lines; i++) html += i + '<br>';
+        lineNumbers.innerHTML = html;
+        if (lineCount) lineCount.textContent = lines + (lines === 1 ? ' line' : ' lines');
+    }
+
+    codeTextarea.addEventListener('input', updateLineNumbers);
+    codeTextarea.addEventListener('scroll', () => {
+        lineNumbers.scrollTop = codeTextarea.scrollTop;
+    });
+
+    function showEditor() {
+        editorPanel.classList.remove('hidden');
+        previewPanel.classList.add('hidden');
+        previewPanel.classList.remove('flex');
+        tabEditor.classList.add('text-indigo-400', 'border-indigo-500');
+        tabEditor.classList.remove('text-slate-400', 'border-transparent');
+        tabPreview.classList.add('text-slate-400', 'border-transparent');
+        tabPreview.classList.remove('text-indigo-400', 'border-indigo-500');
+    }
+
+    function showPreview() {
+        editorPanel.classList.add('hidden');
+        previewPanel.classList.remove('hidden');
+        previewPanel.classList.add('flex');
+        tabPreview.classList.add('text-indigo-400', 'border-indigo-500');
+        tabPreview.classList.remove('text-slate-400', 'border-transparent');
+        tabEditor.classList.add('text-slate-400', 'border-transparent');
+        tabEditor.classList.remove('text-indigo-400', 'border-indigo-500');
+    }
+
+    tabEditor.addEventListener('click', showEditor);
+    tabPreview.addEventListener('click', showPreview);
+    if (closeMobilePreview) closeMobilePreview.addEventListener('click', showEditor);
+
+    document.addEventListener('keydown', (e) => {
+        if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+            e.preventDefault();
+            renderBtn.click();
+        }
+    });
+
+    const defaultCode = `from manim import *
+
+class CreateCircle(Scene):
+    def construct(self):
+        circle = Circle()
+        circle.set_fill(PINK, opacity=0.5)
+        self.play(Create(circle))
+        self.wait()`;
+
+    const saved = localStorage.getItem('manim_code');
+    codeTextarea.value = saved || defaultCode;
+    updateLineNumbers();
+
+    saveBtn.addEventListener('click', () => {
+        localStorage.setItem('manim_code', codeTextarea.value);
+        showToast("Code saved");
+    });
+
+    clearBtn.addEventListener('click', () => {
+        if (confirm("Clear editor?")) {
+            codeTextarea.value = '';
+            updateLineNumbers();
+            showToast("Cleared", "🗑️");
+        }
+    });
+
+    if (loginBtn) {
+        loginBtn.addEventListener('click', () => {
+            window.location.href = "http://127.0.0.1:8000/auth/google";
+        });
+    }
+
+    const urlParams = new URLSearchParams(window.location.search);
+    const userName = urlParams.get('name');
+    const userPic = urlParams.get('picture');
+
+    if (userName && userPic) {
+        isUserLoggedIn = true;
+        authContainer.innerHTML = `
+            <div class="flex items-center gap-1.5 bg-slate-800 px-2 py-1 rounded-full border border-slate-700">
+                <img src="${userPic}" class="w-6 h-6 rounded-full object-cover">
+                <span class="text-xs font-medium max-w-[70px] truncate hidden sm:inline">${userName}</span>
+            </div>`;
+    }
+
+    const templates = {
+        circle: `from manim import *
+
+class CreateCircle(Scene):
+    def construct(self):
+        circle = Circle()
+        circle.set_fill(PINK, opacity=0.5)
+        self.play(Create(circle))
+        self.wait()`,
+
+        square: `from manim import *
+
+class SquareToCircle(Scene):
+    def construct(self):
+        sq = Square().set_fill(BLUE, opacity=0.5)
+        circle = Circle().set_fill(PINK, opacity=0.5)
+        self.play(Create(sq))
+        self.play(Transform(sq, circle))
+        self.wait()`,
+
+        math: `from manim import *
+
+class FormulaScene(Scene):
+    def construct(self):
+        eq = MathTex(r"e^{i\\\\pi} + 1 = 0")
+        self.play(Write(eq))
+        self.wait()`,
+
+        walking: `from manim import *
+
+class WalkingHuman(Scene):
+    def construct(self):
+        head = Circle(radius=0.3, color=WHITE).shift(UP*1.5)
+        torso = Line(UP*1.2, DOWN*0.2, color=WHITE)
+        stickman = VGroup(head, torso).shift(LEFT*3)
+        self.play(Create(stickman))
+        self.play(stickman.animate.shift(RIGHT*6), run_time=3)
+        self.wait()`,
+
+        matplotlib: `import matplotlib.pyplot as plt
+import numpy as np
+
+x = np.linspace(0, 2*np.pi, 200)
+plt.figure(figsize=(8,4), facecolor='#0f172a')
+plt.plot(x, np.sin(x), color='#818cf8', linewidth=2)
+plt.title('Sine Wave', color='white')
+plt.grid(True, alpha=0.2)
+plt.tight_layout()`,
+
+        matplotlib_anim: `import matplotlib.pyplot as plt
+import numpy as np
+from matplotlib.animation import FuncAnimation
+
+fig, ax = plt.subplots(figsize=(8,4), facecolor='#0f172a')
+ax.set_facecolor('#0f172a')
+x = np.linspace(0, 2*np.pi, 200)
+line, = ax.plot(x, np.sin(x), color='#c084fc', lw=2)
+ax.set_ylim(-1.5, 1.5)
+
+def animate(i):
+    line.set_ydata(np.sin(x + i/10))
+    return line,
+
+ani = FuncAnimation(fig, animate, frames=60, interval=40, blit=True)
+plt.close()`,
+
+        livechart: `const ctx = document.getElementById('myChart').getContext('2d');
+let labels = Array.from({length:40}, (_,i)=>i);
+window.liveChartInstance = new Chart(ctx, {
+    type: 'line',
+    data: {
+        labels,
+        datasets: [{
+            label: 'Wave',
+            data: labels.map(i => Math.sin(i*0.2)),
+            borderColor: '#818cf8',
+            borderWidth: 2,
+            tension: 0.4,
+            pointRadius: 0
+        }]
+    },
+    options: {
+        animation: false,
+        scales: {
+            y: { min: -3, max: 3, grid: { color: '#1e293b' } },
+            x: { grid: { color: '#1e293b' } }
+        }
+    }
+});
+let step = 0;
+window.liveChartInterval = setInterval(() => {
+    step += parseFloat(document.getElementById('param-freq').value);
+    const amp = parseFloat(document.getElementById('param-amp').value);
+    window.liveChartInstance.data.datasets[0].data = labels.map(i => amp * Math.sin(i*0.2 + step));
+    window.liveChartInstance.update();
+}, 40);`,
+
+        heart: `import matplotlib.pyplot as plt
+import numpy as np
+from matplotlib.animation import FuncAnimation
+
+fig, ax = plt.subplots(figsize=(7,7), facecolor='black')
+ax.set_facecolor('black')
+ax.set_xlim(-2,2)
+ax.set_ylim(-2,2)
+ax.axis('off')
+
+t = np.linspace(0, 2*np.pi, 250)
+hx = 16*np.sin(t)**3 / 16
+hy = (13*np.cos(t) - 5*np.cos(2*t) - 2*np.cos(3*t) - np.cos(4*t)) / 16
+
+n = 600
+theta = np.random.uniform(0, 2*np.pi, n)
+r = np.random.uniform(0, 1.15, n)**0.5
+px, py = r*np.cos(theta), r*np.sin(theta)
+tx = hx[np.random.randint(0, len(hx), n)]
+ty = hy[np.random.randint(0, len(hy), n)]
+
+scat = ax.scatter(px, py, c=plt.cm.plasma(np.linspace(0.2,0.9,n)), s=5, alpha=0.9)
+
+def update(frame):
+    global px, py
+    px = px*0.93 + tx*0.07
+    py = py*0.93 + ty*0.07
+    beat = 1 + 0.05*np.sin(frame*0.18)
+    scat.set_offsets(np.c_[px*beat, py*beat])
+    return scat,
+
+ani = FuncAnimation(fig, update, frames=100, interval=30, blit=True)
+plt.close()`
+    };
+
+    templateSelect.addEventListener('change', (e) => {
+        if (templates[e.target.value]) {
+            codeTextarea.value = templates[e.target.value];
+            updateLineNumbers();
+            showToast("Template loaded");
+            if (window.innerWidth < 768) showEditor();
+        }
+    });
+
+    paramFreq.oninput = e => valFreq.textContent = e.target.value;
+    paramAmp.oninput = e => valAmp.textContent = e.target.value;
+
+    renderBtn.addEventListener('click', async () => {
+        if (!isUserLoggedIn) {
+            showToast("Please sign in first", "⚠️");
+            return;
+        }
+
+        if (window.innerWidth < 768) showPreview();
+
+        const userCode = codeTextarea.value;
+        const isLiveChart = userCode.includes('Chart(') || userCode.includes('liveChart');
+
+        errorBox.classList.add('hidden');
+        outputVideo.classList.add('hidden');
+        outputImage.classList.add('hidden');
+        chartCanvas.classList.add('hidden');
+        actionBar.classList.add('hidden');
+        previewPlaceholder.classList.remove('hidden');
+        step4Controls.classList.add('hidden');
+
+        if (window.liveChartInterval) clearInterval(window.liveChartInterval);
+        if (window.liveChartInstance) {
+            window.liveChartInstance.destroy();
+            window.liveChartInstance = null;
+        }
+
+        if (isLiveChart) {
+            previewPlaceholder.classList.add('hidden');
+            chartCanvas.classList.remove('hidden');
+            actionBar.classList.remove('hidden');
+            step4Controls.classList.remove('hidden');
+            downloadBtn.style.display = 'none';
+            try {
+                new Function('Chart', userCode)(Chart);
+            } catch (err) {
+                errorBox.classList.remove('hidden');
+                errorText.textContent = err.message;
+            }
+            return;
+        }
+
+        downloadBtn.style.display = 'flex';
+        const isMatplotlibAnim = userCode.includes('FuncAnimation');
+        const isMatplotlib = userCode.includes('plt') || userCode.includes('matplotlib');
+        const endpoint = (isMatplotlibAnim || !isMatplotlib) 
+            ? 'http://127.0.0.1:8000/render' 
+            : 'http://127.0.0.1:8000/render-plot';
+
+        previewPlaceholder.innerHTML = `
+            <div class="flex flex-col items-center gap-3">
+                <div class="w-9 h-9 border-[3px] border-indigo-500 border-t-transparent rounded-full animate-spin"></div>
+                <p class="text-indigo-400 text-sm">Rendering...</p>
+            </div>`;
+
+        try {
+            const response = await fetch(endpoint, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ code: userCode })
+            });
+            const data = await response.json();
+
+            if (response.ok) {
+                previewPlaceholder.classList.add('hidden');
+                actionBar.classList.remove('hidden');
+                if (isMatplotlib && !isMatplotlibAnim) {
+                    outputImage.src = data.image_url;
+                    outputImage.classList.remove('hidden');
+                    downloadBtn.href = data.image_url;
+                } else {
+                    outputVideo.src = data.video_url;
+                    outputVideo.classList.remove('hidden');
+                    downloadBtn.href = data.video_url;
+                    outputVideo.play();
+                }
+                showToast("Render complete!");
+            } else {
+                errorBox.classList.remove('hidden');
+                errorText.textContent = data.detail || "Unknown error";
+                previewPlaceholder.innerHTML = `<p class="text-red-400 text-sm font-medium">Rendering Failed</p>`;
+            }
+        } catch (err) {
+            errorBox.classList.remove('hidden');
+            errorText.textContent = "Cannot connect to backend server";
+            previewPlaceholder.innerHTML = `<p class="text-red-400 text-sm font-medium">Connection Error</p>`;
+        }
+    });
+</script>
+</body>
+</html>
