@@ -1,0 +1,492 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>Renderora | Cloud Animation Platform</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.45.0/min/vs/loader.min.js"></script>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
+body { font-family: 'Inter', sans-serif; }
+.mono { font-family: 'JetBrains Mono', monospace; }
+::-webkit-scrollbar { width: 5px; height: 5px; }
+::-webkit-scrollbar-track { background: #0f172a; }
+::-webkit-scrollbar-thumb { background: #334155; border-radius: 3px; }
+#monaco-container { width: 100%; height: 100%; }
+.splitter { width: 5px; background: #1e293b; cursor: col-resize; transition: background 0.2s; }
+.splitter:hover, .splitter.active { background: #6366f1; }
+.modal-backdrop { background: rgba(0,0,0,0.75); backdrop-filter: blur(6px); }
+</style>
+</head>
+<body class="bg-slate-950 text-white h-screen flex flex-col overflow-hidden">
+
+<!-- Header -->
+<header class="bg-slate-900 border-b border-slate-800 px-3 py-2 flex justify-between items-center shrink-0 z-30">
+  <div class="flex items-center gap-2">
+    <button id="menu-btn" class="p-1.5 rounded-lg bg-slate-800 hover:bg-slate-700">
+      <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/></svg>
+    </button>
+    <div class="w-8 h-8 rounded-lg bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center font-bold text-sm">⚡</div>
+    <div>
+      <h1 class="text-sm font-bold leading-none">Renderora</h1>
+      <p class="text-[10px] text-slate-400">Manim + Matplotlib</p>
+    </div>
+  </div>
+
+  <div class="flex items-center gap-1.5">
+    <span id="save-status" class="text-[10px] text-slate-500 mr-1">Saved</span>
+    <select id="template-select" class="bg-slate-800 text-xs px-2 py-1.5 rounded-lg border border-slate-700">
+      <option value="">📂 Examples</option>
+      <option value="circle">Circle</option>
+      <option value="square">Square → Circle</option>
+      <option value="math">Euler's Identity</option>
+      <option value="walking">Stickman</option>
+      <option value="matplotlib">Sine Wave</option>
+      <option value="heart">Particle Heart</option>
+    </select>
+    <button id="copy-btn" class="bg-slate-800 hover:bg-slate-700 text-xs px-2.5 py-1.5 rounded-lg border border-slate-700" title="Copy code">📋</button>
+    <button id="share-btn" class="bg-slate-800 hover:bg-slate-700 text-xs px-2.5 py-1.5 rounded-lg border border-slate-700" title="Share">🔗</button>
+    <button id="save-btn" class="bg-slate-800 hover:bg-slate-700 text-xs px-2.5 py-1.5 rounded-lg border border-slate-700">💾</button>
+    <button id="login-btn" class="bg-white text-gray-900 text-xs font-semibold px-3 py-1.5 rounded-lg">Sign in</button>
+  </div>
+</header>
+
+<!-- Drawer -->
+<div id="drawer-bg" class="fixed inset-0 bg-black/60 z-40 hidden"></div>
+<div id="drawer" class="fixed top-0 left-0 bottom-0 w-72 bg-slate-900 border-r border-slate-800 z-50 -translate-x-full transition-transform duration-300 flex flex-col">
+  <div class="p-4 border-b border-slate-800 flex justify-between items-center">
+    <span class="font-bold text-sm">Menu</span>
+    <button id="close-drawer" class="text-slate-400 text-xl">×</button>
+  </div>
+  <div class="p-4 border-b border-slate-800">
+    <div class="flex justify-between text-xs mb-1">
+      <span class="text-slate-400">Today's Renders</span>
+      <span id="quota-text" class="text-indigo-400 font-medium">0 / 5</span>
+    </div>
+    <div class="w-full bg-slate-800 h-1.5 rounded-full"><div id="quota-bar" class="bg-indigo-500 h-full rounded-full" style="width:0%"></div></div>
+  </div>
+  <div class="flex-1 p-3 space-y-1 text-sm">
+    <button onclick="showSection('editor')" class="w-full text-left px-3 py-2.5 rounded-lg hover:bg-slate-800">💻 Playground</button>
+    <button onclick="showSection('history')" class="w-full text-left px-3 py-2.5 rounded-lg hover:bg-slate-800">🕒 History</button>
+    <button onclick="showSection('library')" class="w-full text-left px-3 py-2.5 rounded-lg hover:bg-slate-800">📚 Library</button>
+    <button onclick="openShortcuts()" class="w-full text-left px-3 py-2.5 rounded-lg hover:bg-slate-800">⌨️ Shortcuts</button>
+    <button onclick="openPricing()" class="w-full text-left px-3 py-2.5 rounded-lg hover:bg-slate-800 text-indigo-400">⭐ Upgrade Pro</button>
+  </div>
+</div>
+
+<!-- Shortcuts Modal -->
+<div id="shortcuts-modal" class="fixed inset-0 modal-backdrop z-50 hidden flex items-center justify-center p-4">
+  <div class="bg-slate-900 border border-slate-700 rounded-2xl max-w-sm w-full p-5">
+    <div class="flex justify-between items-center mb-4">
+      <h3 class="font-bold">Keyboard Shortcuts</h3>
+      <button onclick="closeShortcuts()" class="text-slate-400 text-xl">×</button>
+    </div>
+    <div class="space-y-2 text-sm">
+      <div class="flex justify-between"><span>Render</span><kbd class="bg-slate-800 px-2 py-0.5 rounded text-xs">Ctrl + Enter</kbd></div>
+      <div class="flex justify-between"><span>Save</span><kbd class="bg-slate-800 px-2 py-0.5 rounded text-xs">Ctrl + S</kbd></div>
+      <div class="flex justify-between"><span>Copy Code</span><kbd class="bg-slate-800 px-2 py-0.5 rounded text-xs">Ctrl + Shift + C</kbd></div>
+      <div class="flex justify-between"><span>Share</span><kbd class="bg-slate-800 px-2 py-0.5 rounded text-xs">Ctrl + Shift + S</kbd></div>
+      <div class="flex justify-between"><span>Shortcuts</span><kbd class="bg-slate-800 px-2 py-0.5 rounded text-xs">?</kbd></div>
+    </div>
+  </div>
+</div>
+
+<!-- Pricing Modal -->
+<div id="pricing-modal" class="fixed inset-0 modal-backdrop z-50 hidden flex items-center justify-center p-4">
+  <div class="bg-slate-900 border border-slate-700 rounded-2xl max-w-sm w-full p-6 relative">
+    <button onclick="closePricing()" class="absolute top-3 right-3 text-slate-400 text-xl">×</button>
+    <div class="text-center mb-4">
+      <div class="text-3xl mb-1">⭐</div>
+      <h3 class="text-lg font-bold">Renderora Pro</h3>
+      <p class="text-indigo-400 font-bold text-xl mt-1">$5<span class="text-sm text-slate-400 font-normal">/mo</span></p>
+    </div>
+    <ul class="text-xs text-slate-300 space-y-2 mb-5">
+      <li>✅ 20 Manim renders / day</li>
+      <li>✅ HD Quality</li>
+      <li>✅ Priority queue</li>
+      <li>✅ Unlimited history</li>
+    </ul>
+    <button onclick="upgradePro()" class="w-full bg-indigo-600 hover:bg-indigo-500 py-2.5 rounded-xl font-semibold text-sm">Upgrade Now</button>
+  </div>
+</div>
+
+<!-- Mobile Tabs -->
+<div class="flex md:hidden border-b border-slate-800 bg-slate-900">
+  <button id="tab-editor" class="flex-1 py-2 text-sm font-medium text-indigo-400 border-b-2 border-indigo-500">Editor</button>
+  <button id="tab-preview" class="flex-1 py-2 text-sm font-medium text-slate-400 border-b-2 border-transparent">Preview</button>
+</div>
+
+<!-- Main -->
+<main class="flex-1 flex overflow-hidden">
+  <!-- Editor -->
+  <div id="editor-panel" class="flex flex-col bg-slate-900" style="width:50%">
+    <div class="bg-slate-950 px-3 py-1.5 border-b border-slate-800 flex justify-between items-center">
+      <div class="flex items-center gap-1.5">
+        <span class="w-2.5 h-2.5 rounded-full bg-red-500"></span>
+        <span class="w-2.5 h-2.5 rounded-full bg-yellow-500"></span>
+        <span class="w-2.5 h-2.5 rounded-full bg-green-500"></span>
+        <span class="ml-2 text-xs text-slate-400 mono">scene.py</span>
+      </div>
+      <div class="flex items-center gap-2">
+        <button id="quality-btn" class="text-[11px] font-bold text-indigo-400 border border-slate-700 px-2 py-0.5 rounded">LOW</button>
+        <button id="render-btn" class="bg-indigo-600 hover:bg-indigo-500 px-3 py-1 rounded-lg text-xs font-bold">▶ Render</button>
+      </div>
+    </div>
+    <div class="flex-1 relative bg-[#1e1e1e]">
+      <div id="monaco-container" class="absolute inset-0"></div>
+      <div id="section-view" class="absolute inset-0 bg-slate-950 p-4 overflow-y-auto hidden"></div>
+    </div>
+    <!-- Console -->
+    <div id="console-panel" class="h-28 border-t border-slate-800 bg-slate-950 flex flex-col">
+      <div class="px-3 py-1 border-b border-slate-800 flex justify-between items-center">
+        <span class="text-[11px] text-slate-400">Console</span>
+        <button onclick="clearConsole()" class="text-[10px] text-slate-500 hover:text-slate-300">Clear</button>
+      </div>
+      <div id="console-output" class="flex-1 overflow-y-auto p-2 text-xs mono text-slate-400"></div>
+    </div>
+  </div>
+
+  <!-- Splitter -->
+  <div id="splitter" class="splitter hidden md:block"></div>
+
+  <!-- Preview -->
+  <div id="preview-panel" class="flex flex-col bg-slate-900 flex-1 hidden md:flex">
+    <div class="bg-slate-950 px-3 py-1.5 border-b border-slate-800 flex justify-between items-center">
+      <span class="text-sm text-slate-300">🎬 Output</span>
+      <div class="flex items-center gap-2">
+        <span id="render-time" class="text-[10px] text-slate-500"></span>
+        <button id="fullscreen-btn" class="text-xs bg-slate-800 hover:bg-slate-700 px-2 py-1 rounded border border-slate-700">⛶</button>
+        <button id="publish-btn" class="text-xs bg-slate-800 hover:bg-slate-700 px-2.5 py-1 rounded border border-slate-700 hidden">Publish</button>
+      </div>
+    </div>
+    <div class="flex-1 flex items-center justify-center bg-slate-950 relative p-4" id="preview-area">
+      <div id="placeholder" class="text-center">
+        <div class="w-16 h-16 mx-auto mb-3 rounded-2xl bg-slate-900 border border-slate-800 flex items-center justify-center text-2xl">🎞️</div>
+        <p class="text-slate-400 text-sm">Ready to render</p>
+        <p class="text-slate-600 text-xs mt-1">Press <kbd class="bg-slate-800 px-1.5 py-0.5 rounded text-[10px]">Ctrl + Enter</kbd></p>
+      </div>
+      <video id="video" class="w-full h-full object-contain hidden rounded-lg" controls></video>
+      <img id="image" class="w-full h-full object-contain hidden rounded-lg">
+    </div>
+    <div id="action-bar" class="px-3 py-2 border-t border-slate-800 flex justify-between items-center hidden">
+      <span class="text-xs text-emerald-400">✓ Success</span>
+      <a id="download-btn" href="#" download class="bg-indigo-600 text-xs px-3 py-1.5 rounded-lg font-medium">⬇ Download</a>
+    </div>
+    <div id="error-box" class="m-3 bg-red-950/40 border border-red-500/30 rounded-lg p-3 text-xs text-red-300 hidden">
+      <div class="font-bold mb-1">Error</div>
+      <pre id="error-text" class="whitespace-pre-wrap"></pre>
+    </div>
+  </div>
+</main>
+
+<!-- Toast -->
+<div id="toast" class="fixed bottom-5 left-1/2 -translate-x-1/2 bg-slate-800 border border-slate-700 px-4 py-2.5 rounded-xl text-sm flex items-center gap-2 opacity-0 translate-y-8 transition-all z-50">
+  <span id="toast-icon">✓</span>
+  <span id="toast-msg"></span>
+</div>
+
+<script>
+// ========== STATE ==========
+let editor = null;
+let isLoggedIn = false;
+let isPro = false;
+let rendersToday = 0;
+let quality = 'LOW';
+let history = JSON.parse(localStorage.getItem('renderora_history') || '[]');
+let isResizing = false;
+
+const defaultCode = `from manim import *
+
+class CreateCircle(Scene):
+    def construct(self):
+        circle = Circle()
+        circle.set_fill(PINK, opacity=0.5)
+        self.play(Create(circle))
+        self.wait()`;
+
+// ========== HELPERS ==========
+function toast(msg, icon = "✓") {
+  const t = document.getElementById('toast');
+  document.getElementById('toast-msg').textContent = msg;
+  document.getElementById('toast-icon').textContent = icon;
+  t.classList.remove('opacity-0', 'translate-y-8');
+  setTimeout(() => t.classList.add('opacity-0', 'translate-y-8'), 2200);
+}
+
+function log(msg, type = 'info') {
+  const el = document.getElementById('console-output');
+  const color = type === 'error' ? 'text-red-400' : type === 'success' ? 'text-emerald-400' : 'text-slate-400';
+  el.innerHTML += `<div class="${color}">${msg}</div>`;
+  el.scrollTop = el.scrollHeight;
+}
+function clearConsole() { document.getElementById('console-output').innerHTML = ''; }
+
+function updateQuota() {
+  const limit = isPro ? 20 : 5;
+  document.getElementById('quota-text').textContent = `${rendersToday} / ${limit}`;
+  document.getElementById('quota-bar').style.width = `${Math.min(100, (rendersToday/limit)*100)}%`;
+}
+
+function setSaveStatus(text, color = 'text-slate-500') {
+  const el = document.getElementById('save-status');
+  el.textContent = text;
+  el.className = `text-[10px] mr-1 ${color}`;
+}
+
+// ========== DRAWER ==========
+document.getElementById('menu-btn').onclick = () => {
+  document.getElementById('drawer').classList.remove('-translate-x-full');
+  document.getElementById('drawer-bg').classList.remove('hidden');
+};
+document.getElementById('close-drawer').onclick = closeDrawer;
+document.getElementById('drawer-bg').onclick = closeDrawer;
+function closeDrawer() {
+  document.getElementById('drawer').classList.add('-translate-x-full');
+  document.getElementById('drawer-bg').classList.add('hidden');
+}
+
+// ========== SECTIONS ==========
+function showSection(name) {
+  closeDrawer();
+  const monaco = document.getElementById('monaco-container');
+  const view = document.getElementById('section-view');
+  if (name === 'editor') {
+    monaco.classList.remove('hidden');
+    view.classList.add('hidden');
+    if (editor) setTimeout(() => editor.layout(), 50);
+    return;
+  }
+  monaco.classList.add('hidden');
+  view.classList.remove('hidden');
+
+  if (name === 'history') {
+    let html = `<h2 class="text-lg font-bold text-indigo-400 mb-3">🕒 History</h2>`;
+    if (!history.length) html += `<p class="text-slate-500 text-sm">No saved scenes yet.</p>`;
+    else history.slice().reverse().forEach((item, i) => {
+      html += `<div class="bg-slate-900 border border-slate-800 rounded-xl p-3 mb-2 flex justify-between items-center">
+        <div><div class="text-xs font-medium">${item.title}</div><div class="text-[10px] text-slate-500">${new Date(item.time).toLocaleString()}</div></div>
+        <button onclick="loadHistory(${history.length-1-i})" class="text-xs bg-indigo-600 px-2.5 py-1 rounded-lg">Load</button>
+      </div>`;
+    });
+    view.innerHTML = html;
+  }
+  if (name === 'library') {
+    view.innerHTML = `<h2 class="text-lg font-bold text-indigo-400 mb-3">📚 Library</h2>
+      <div class="space-y-2">${Object.keys(templates).map(k => `
+        <div class="bg-slate-900 border border-slate-800 rounded-xl p-3 flex justify-between items-center">
+          <span class="text-xs font-medium capitalize">${k}</span>
+          <button onclick="loadTemplate('${k}')" class="text-xs bg-indigo-600 px-2.5 py-1 rounded-lg">Load</button>
+        </div>`).join('')}</div>`;
+  }
+}
+
+function loadHistory(i) {
+  if (editor && history[i]) {
+    editor.setValue(history[i].code);
+    showSection('editor');
+    toast("Loaded from history");
+  }
+}
+
+// ========== MODALS ==========
+function openShortcuts() { document.getElementById('shortcuts-modal').classList.remove('hidden'); closeDrawer(); }
+function closeShortcuts() { document.getElementById('shortcuts-modal').classList.add('hidden'); }
+function openPricing() { document.getElementById('pricing-modal').classList.remove('hidden'); closeDrawer(); }
+function closePricing() { document.getElementById('pricing-modal').classList.add('hidden'); }
+function upgradePro() { isPro = true; closePricing(); updateQuota(); toast("Pro activated", "⭐"); }
+
+// ========== MONACO ==========
+require.config({ paths: { vs: 'https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.45.0/min/vs' }});
+require(['vs/editor/editor.main'], () => {
+  editor = monaco.editor.create(document.getElementById('monaco-container'), {
+    value: localStorage.getItem('manim_code') || defaultCode,
+    language: 'python',
+    theme: 'vs-dark',
+    fontSize: 13,
+    fontFamily: 'JetBrains Mono, monospace',
+    minimap: { enabled: false },
+    automaticLayout: true,
+    scrollBeyondLastLine: false,
+    padding: { top: 8 }
+  });
+  setTimeout(() => editor.layout(), 300);
+
+  // Auto-save
+  let saveTimeout;
+  editor.onDidChangeModelContent(() => {
+    setSaveStatus("Unsaved...", "text-amber-400");
+    clearTimeout(saveTimeout);
+    saveTimeout = setTimeout(() => {
+      localStorage.setItem('manim_code', editor.getValue());
+      setSaveStatus("Saved", "text-emerald-400");
+    }, 1000);
+  });
+
+  // Shortcuts
+  editor.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.Enter, () => document.getElementById('render-btn').click());
+  editor.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.KeyS, () => { document.getElementById('save-btn').click(); return null; });
+});
+
+// ========== TEMPLATES ==========
+const templates = {
+  circle: defaultCode,
+  square: `from manim import *\n\nclass SquareToCircle(Scene):\n    def construct(self):\n        sq = Square().set_fill(BLUE, opacity=0.5)\n        circle = Circle().set_fill(PINK, opacity=0.5)\n        self.play(Create(sq))\n        self.play(Transform(sq, circle))\n        self.wait()`,
+  math: `from manim import *\n\nclass FormulaScene(Scene):\n    def construct(self):\n        eq = MathTex(r"e^{i\\\\pi} + 1 = 0")\n        self.play(Write(eq))\n        self.wait()`,
+  walking: `from manim import *\n\nclass WalkingHuman(Scene):\n    def construct(self):\n        head = Circle(radius=0.3, color=WHITE).shift(UP*1.5)\n        torso = Line(UP*1.2, DOWN*0.2, color=WHITE)\n        stickman = VGroup(head, torso).shift(LEFT*3)\n        self.play(Create(stickman))\n        self.play(stickman.animate.shift(RIGHT*6), run_time=3)\n        self.wait()`,
+  matplotlib: `import matplotlib.pyplot as plt\nimport numpy as np\n\nx = np.linspace(0, 2*np.pi, 200)\nplt.figure(figsize=(8,4), facecolor='#0f172a')\nplt.plot(x, np.sin(x), color='#818cf8', lw=2)\nplt.title('Sine Wave', color='white')\nplt.grid(True, alpha=0.2)\nplt.tight_layout()`,
+  heart: `import matplotlib.pyplot as plt\nimport numpy as np\nfrom matplotlib.animation import FuncAnimation\n\nfig, ax = plt.subplots(figsize=(7,7), facecolor='black')\nax.set_facecolor('black')\nax.set_xlim(-2,2)\nax.set_ylim(-2,2)\nax.axis('off')\nt = np.linspace(0, 2*np.pi, 250)\nhx = 16*np.sin(t)**3/16\nhy = (13*np.cos(t)-5*np.cos(2*t)-2*np.cos(3*t)-np.cos(4*t))/16\nn=600\ntheta=np.random.uniform(0,2*np.pi,n)\nr=np.random.uniform(0,1.15,n)**0.5\npx,py=r*np.cos(theta),r*np.sin(theta)\ntx=hx[np.random.randint(0,len(hx),n)]\nty=hy[np.random.randint(0,len(hy),n)]\nscat=ax.scatter(px,py,c=plt.cm.plasma(np.linspace(0.2,0.9,n)),s=5,alpha=0.9)\ndef update(f):\n    global px,py\n    px=px*0.93+tx*0.07; py=py*0.93+ty*0.07\n    beat=1+0.05*np.sin(f*0.18)\n    scat.set_offsets(np.c_[px*beat,py*beat])\n    return scat,\nani=FuncAnimation(fig,update,frames=100,interval=30,blit=True)\nplt.close()`
+};
+
+function loadTemplate(key) {
+  if (editor && templates[key]) {
+    editor.setValue(templates[key]);
+    showSection('editor');
+    toast("Example loaded");
+  }
+}
+document.getElementById('template-select').onchange = e => { if (e.target.value) loadTemplate(e.target.value); };
+
+// ========== ACTIONS ==========
+document.getElementById('save-btn').onclick = () => {
+  if (!editor) return;
+  const code = editor.getValue();
+  localStorage.setItem('manim_code', code);
+  history.push({ title: `Scene ${history.length+1}`, code, time: Date.now() });
+  if (history.length > 30) history.shift();
+  localStorage.setItem('renderora_history', JSON.stringify(history));
+  setSaveStatus("Saved", "text-emerald-400");
+  toast("Saved");
+};
+
+document.getElementById('copy-btn').onclick = () => {
+  if (editor) {
+    navigator.clipboard.writeText(editor.getValue());
+    toast("Code copied");
+  }
+};
+
+document.getElementById('share-btn').onclick = () => {
+  if (!editor) return;
+  const code = btoa(unescape(encodeURIComponent(editor.getValue())));
+  const url = `${location.origin}${location.pathname}?code=${code}`;
+  navigator.clipboard.writeText(url);
+  toast("Share link copied");
+};
+
+document.getElementById('quality-btn').onclick = () => {
+  if (!isPro && quality === 'LOW') { openPricing(); return; }
+  quality = quality === 'LOW' ? 'HIGH' : 'LOW';
+  const btn = document.getElementById('quality-btn');
+  btn.textContent = quality;
+  btn.className = quality === 'HIGH' ? 'text-[11px] font-bold text-emerald-400 border border-slate-700 px-2 py-0.5 rounded' : 'text-[11px] font-bold text-indigo-400 border border-slate-700 px-2 py-0.5 rounded';
+  toast(`Quality: ${quality}`);
+};
+
+document.getElementById('fullscreen-btn').onclick = () => {
+  const area = document.getElementById('preview-area');
+  if (!document.fullscreenElement) area.requestFullscreen?.();
+  else document.exitFullscreen?.();
+};
+
+// ========== RENDER ==========
+document.getElementById('render-btn').onclick = async () => {
+  const limit = isPro ? 20 : 5;
+  if (rendersToday >= limit) { openPricing(); toast("Limit reached", "⚠️"); return; }
+  if (!isLoggedIn && rendersToday >= 3) { toast("Sign in for more free renders", "⚠️"); return; }
+
+  clearConsole();
+  log("Starting render...");
+  const start = Date.now();
+
+  document.getElementById('error-box').classList.add('hidden');
+  document.getElementById('video').classList.add('hidden');
+  document.getElementById('image').classList.add('hidden');
+  document.getElementById('action-bar').classList.add('hidden');
+  document.getElementById('placeholder').classList.remove('hidden');
+  document.getElementById('placeholder').innerHTML = `
+    <div class="flex flex-col items-center gap-3">
+      <div class="w-8 h-8 border-2 border-indigo-500 border-t-transparent rounded-full animate-spin"></div>
+      <p class="text-indigo-400 text-sm">Rendering (${quality})...</p>
+    </div>`;
+
+  // Demo render
+  setTimeout(() => {
+    const time = ((Date.now() - start) / 1000).toFixed(1);
+    rendersToday++;
+    updateQuota();
+    document.getElementById('render-time').textContent = `${time}s`;
+    document.getElementById('placeholder').innerHTML = `
+      <div class="text-center">
+        <div class="text-4xl mb-2">✅</div>
+        <p class="text-emerald-400 text-sm font-medium">Rendered Successfully</p>
+        <p class="text-slate-500 text-xs mt-1">Connect backend for real video</p>
+      </div>`;
+    document.getElementById('action-bar').classList.remove('hidden');
+    document.getElementById('publish-btn').classList.remove('hidden');
+    log(`Render finished in ${time}s`, 'success');
+    toast("Render complete");
+  }, 1600);
+};
+
+// ========== RESIZER ==========
+const splitter = document.getElementById('splitter');
+const editorPanel = document.getElementById('editor-panel');
+splitter.addEventListener('mousedown', () => {
+  isResizing = true;
+  splitter.classList.add('active');
+  document.body.style.cursor = 'col-resize';
+});
+document.addEventListener('mousemove', e => {
+  if (!isResizing) return;
+  const pct = (e.clientX / window.innerWidth) * 100;
+  if (pct > 25 && pct < 75) {
+    editorPanel.style.width = pct + '%';
+    if (editor) editor.layout();
+  }
+});
+document.addEventListener('mouseup', () => {
+  isResizing = false;
+  splitter.classList.remove('active');
+  document.body.style.cursor = '';
+});
+
+// ========== AUTH ==========
+document.getElementById('login-btn').onclick = () => {
+  isLoggedIn = true;
+  document.getElementById('login-btn').outerHTML = `<div class="w-7 h-7 rounded-full bg-indigo-500 flex items-center justify-center text-xs font-bold">U</div>`;
+  toast("Signed in");
+};
+
+// ========== GLOBAL SHORTCUTS ==========
+document.addEventListener('keydown', e => {
+  if (e.key === '?' && !e.ctrlKey) openShortcuts();
+  if (e.ctrlKey && e.shiftKey && e.key === 'C') document.getElementById('copy-btn').click();
+  if (e.ctrlKey && e.shiftKey && e.key === 'S') document.getElementById('share-btn').click();
+});
+
+// ========== MOBILE ==========
+document.getElementById('tab-editor').onclick = () => {
+  document.getElementById('editor-panel').classList.remove('hidden');
+  document.getElementById('preview-panel').classList.add('hidden');
+};
+document.getElementById('tab-preview').onclick = () => {
+  document.getElementById('editor-panel').classList.add('hidden');
+  document.getElementById('preview-panel').classList.remove('hidden');
+  document.getElementById('preview-panel').classList.add('flex');
+};
+
+// Load shared code if any
+const params = new URLSearchParams(location.search);
+if (params.get('code')) {
+  try {
+    const code = decodeURIComponent(escape(atob(params.get('code'))));
+    setTimeout(() => { if (editor) editor.setValue(code); }, 500);
+  } catch {}
+}
+
+updateQuota();
+</script>
+</body>
+</html>
