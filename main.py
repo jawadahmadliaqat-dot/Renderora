@@ -108,7 +108,16 @@ app.mount("/media", StaticFiles(directory=MEDIA_DIR), name="media")
 class CodeRequest(BaseModel):
     code: str
     quality: str = "LOW"
-
+# ==========================================
+# 6. Favicon Routes (Fixes Tab Icon Issue)
+# ==========================================
+@app.get('/favicon.ico', include_in_schema=False)
+@app.get('/favicon.svg', include_in_schema=False)
+async def favicon():
+    favicon_path = os.path.join(MEDIA_DIR, "favicon.svg")
+    if os.path.exists(favicon_path):
+        return FileResponse(favicon_path)
+    raise HTTPException(status_code=404, detail="Favicon file not found in media folder")
 # ==========================================
 # 6. Home Route
 # ==========================================
