@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="100%" height="100%">
+  <defs>
+    <linearGradient id="renderora-grad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#6366F1" />
+      <stop offset="100%" stop-color="#06B6D4" />
+    </linearGradient>
+  </defs>
+  <!-- Background Rounded Box -->
+  <rect width="512" height="512" rx="120" fill="#090D16" />
+  
+  <!-- Stylized Modern 'R' for Renderora -->
+  <path d="M140 112h140c55.2 0 100 44.8 100 100 0 34.4-17.6 64.8-44.4 82.8l56.4 123.2h-72l-48-108h-48v108h-64V112zm64 64v100h76c22.1 0 40-17.9 40-40s-17.9-40-40-40h-76z" fill="url(#renderora-grad)" />
+</svg>
