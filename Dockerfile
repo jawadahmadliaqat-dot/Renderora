@@ -7,6 +7,8 @@ RUN apt-get update && apt-get install -y \
     pkg-config \
     python3-dev \
     build-essential \
+    texlive-latex-base \
+    texlive-fonts-recommended \
     && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
