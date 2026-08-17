@@ -249,7 +249,7 @@ def render_code(req: CodeRequest):
                 ["manim", quality_flag, "--media_dir", work_dir, "-o", f"output_{job_id}", script_filename],
                 capture_output=True,
                 text=True,
-                timeout=90
+                timeout=180
             )
 
             print("===== MANIM STDOUT =====")
