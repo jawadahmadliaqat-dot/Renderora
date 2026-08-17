@@ -2,56 +2,958 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <title>Renderora | Cloud Animation Platform</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.45.0/min/vs/loader.min.js"></script>
   <script src="https://accounts.google.com/gsi/client" async defer></script>
   <style>
-    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
-    body { font-family: 'Inter', system-ui, sans-serif; }
-    .mono { font-family: 'JetBrains Mono', monospace; }
-    ::-webkit-scrollbar { width: 4px; height: 4px; }
-    ::-webkit-scrollbar-track { background: transparent; }
-    ::-webkit-scrollbar-thumb { background: #334155; border-radius: 4px; }
-    #editor-wrapper {
-      flex: 1; min-height: 0; position: relative; background: #1e1e1e;
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap');
+
+    :root {
+      --bg-900: #020817;
+      --bg-800: #0f172a;
+      --bg-700: #111827;
+      --panel: rgba(15, 23, 42, 0.8);
+      --panel-strong: rgba(15, 23, 42, 0.96);
+      --border: rgba(148, 163, 184, 0.18);
+      --text: #e2e8f0;
+      --muted: #94a3b8;
+      --primary: #818cf8;
+      --primary-strong: #6366f1;
+      --success: #34d399;
+      --warning: #fbbf24;
+      --danger: #f87171;
     }
+
+    html, body {
+      margin: 0;
+      min-height: 100%;
+      background: var(--bg-900);
+      color: var(--text);
+      overscroll-behavior: none;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    body {
+      font-family: 'Inter', system-ui, sans-serif;
+      background:
+        radial-gradient(circle at top, rgba(129, 140, 248, 0.22), transparent 25%),
+        radial-gradient(circle at bottom right, rgba(45, 212, 191, 0.12), transparent 22%),
+        var(--bg-900);
+      overflow-x: hidden;
+      overflow-y: auto;
+      touch-action: pan-y;
+    }
+
+    body::before {
+      content: "";
+      position: fixed;
+      inset: 0;
+      background-image:
+        linear-gradient(rgba(148,163,184,0.04) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(148,163,184,0.04) 1px, transparent 1px);
+      background-size: 20px 20px;
+      mask-image: radial-gradient(circle at center, black 30%, transparent 100%);
+      pointer-events: none;
+    }
+
+    body::after {
+      content: "";
+      position: fixed;
+      inset: auto auto -18% -8%;
+      width: 30rem;
+      height: 30rem;
+      border-radius: 50%;
+      background: radial-gradient(circle, rgba(99, 102, 241, 0.22), transparent 58%);
+      filter: blur(18px);
+      pointer-events: none;
+      animation: driftGlow 14s ease-in-out infinite alternate;
+    }
+
+    @keyframes driftGlow {
+      0% { transform: translate3d(0, 0, 0) scale(1); }
+      100% { transform: translate3d(5%, -8%, 0) scale(1.18); }
+    }
+
+    .mono { font-family: 'JetBrains Mono', monospace; }
+    ::-webkit-scrollbar { width: 8px; height: 8px; }
+    ::-webkit-scrollbar-track { background: rgba(15, 23, 42, 0.2); border-radius: 999px; }
+    ::-webkit-scrollbar-thumb {
+      background: linear-gradient(180deg, rgba(129, 140, 248, 0.8), rgba(168, 85, 247, 0.8));
+      border-radius: 999px;
+      border: 2px solid rgba(15, 23, 42, 0.4);
+    }
+    * { scrollbar-color: rgba(129,140,248,0.8) rgba(15,23,42,0.2); }
+
+    .app-shell {
+      position: relative;
+      z-index: 1;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      background: rgba(2, 6, 23, 0.38);
+      backdrop-filter: blur(10px);
+    }
+
+    .glass-panel {
+      background: rgba(15, 23, 42, 0.56);
+      backdrop-filter: blur(18px);
+      -webkit-backdrop-filter: blur(18px);
+      border: 1px solid rgba(148, 163, 184, 0.14);
+      box-shadow: 0 20px 45px rgba(2, 6, 23, 0.25);
+    }
+
+    @keyframes floatSlow {
+      0%, 100% { transform: translateY(0px); }
+      50% { transform: translateY(-12px); }
+    }
+
+    @keyframes pulseGlow {
+      0%, 100% { box-shadow: 0 0 25px rgba(129, 140, 248, 0.35); }
+      50% { box-shadow: 0 0 40px rgba(168, 85, 247, 0.5); }
+    }
+
+    .hero-section {
+      position: relative;
+      overflow: hidden;
+      padding: 2.2rem 1rem 1.1rem;
+      background: linear-gradient(180deg, rgba(15,23,42,0.64), rgba(2,6,23,0.2));
+      border-bottom: 1px solid rgba(148,163,184,0.12);
+    }
+
+    .hero-inner {
+      max-width: 1200px;
+      margin: 0 auto;
+      position: relative;
+      z-index: 1;
+    }
+
+    .hero-grid {
+      display: grid;
+      grid-template-columns: 1.2fr 0.8fr;
+      gap: 1.5rem;
+      align-items: center;
+    }
+
+    .hero-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.45rem;
+      padding: 0.42rem 0.75rem;
+      border-radius: 999px;
+      background: rgba(99, 102, 241, 0.12);
+      border: 1px solid rgba(129, 140, 248, 0.35);
+      color: #c7d2fe;
+      font-size: 0.68rem;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+
+    .hero-badge .dot {
+      width: 0.5rem;
+      height: 0.5rem;
+      border-radius: 50%;
+      background: #34d399;
+      box-shadow: 0 0 12px rgba(52, 211, 153, 0.8);
+    }
+
+    .hero-title {
+      margin: 1rem 0 0.8rem;
+      font-size: clamp(2.2rem, 5vw, 4.2rem);
+      line-height: 1.02;
+      letter-spacing: -0.06em;
+      font-weight: 800;
+    }
+
+    .hero-title .accent {
+      background: linear-gradient(90deg, #a5b4fc, #c084fc, #67e8f9);
+      -webkit-background-clip: text;
+      background-clip: text;
+      color: transparent;
+    }
+
+    .hero-copy {
+      max-width: 600px;
+      color: #cbd5e1;
+      font-size: 1rem;
+      line-height: 1.7;
+      margin-bottom: 1.25rem;
+    }
+
+    .hero-actions {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 0.8rem;
+      margin-bottom: 1.25rem;
+    }
+
+    .primary-cta,
+    .secondary-cta {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 0.95rem;
+      padding: 0.8rem 1.2rem;
+      font-weight: 700;
+      font-size: 0.88rem;
+      transition: all 0.22s ease;
+      transform: translateY(0);
+    }
+
+    .primary-cta:hover,
+    .secondary-cta:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 18px 34px rgba(79, 70, 229, 0.18);
+    }
+
+    .primary-cta {
+      background: linear-gradient(135deg, #4f46e5, #7c3aed);
+      color: white;
+      box-shadow: 0 20px 30px rgba(99, 102, 241, 0.35);
+    }
+
+    .secondary-cta {
+      background: rgba(15, 23, 42, 0.72);
+      color: #e2e8f0;
+      border: 1px solid rgba(148,163,184,0.2);
+    }
+
+    .hero-metrics {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.9rem;
+    }
+
+    .hero-metric {
+      min-width: 110px;
+      padding: 0.75rem 0.9rem;
+      border-radius: 1rem;
+      background: rgba(15, 23, 42, 0.7);
+      border: 1px solid rgba(148,163,184,0.14);
+    }
+
+    .hero-metric strong {
+      display: block;
+      font-size: 1.25rem;
+      margin-bottom: 0.15rem;
+    }
+
+    .hero-metric span {
+      font-size: 0.7rem;
+      color: #94a3b8;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+    }
+
+    .dashboard-card {
+      position: relative;
+      min-height: 440px;
+      padding: 1rem;
+      border-radius: 1.6rem;
+      background: linear-gradient(180deg, rgba(15,23,42,0.72), rgba(15,23,42,0.58));
+      border: 1px solid rgba(148,163,184,0.18);
+      box-shadow: 0 35px 80px rgba(15, 23, 42, 0.4), inset 0 1px 0 rgba(255,255,255,0.08);
+      animation: floatSlow 7s ease-in-out infinite;
+      backdrop-filter: blur(18px);
+      -webkit-backdrop-filter: blur(18px);
+    }
+
+    .dashboard-card::before {
+      content: "";
+      position: absolute;
+      inset: -22% auto auto -10%;
+      width: 200px;
+      height: 200px;
+      border-radius: 50%;
+      background: radial-gradient(circle, rgba(129,140,248,0.44), transparent 60%);
+      filter: blur(14px);
+      pointer-events: none;
+    }
+
+    .dashboard-window {
+      position: relative;
+      height: 100%;
+      border-radius: 1.1rem;
+      background: rgba(2, 6, 23, 0.82);
+      border: 1px solid rgba(148,163,184,0.12);
+      overflow: hidden;
+      box-shadow: inset 0 1px 0 rgba(255,255,255,0.04);
+    }
+
+    .window-top {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 0.85rem 0.9rem;
+      border-bottom: 1px solid rgba(148,163,184,0.12);
+      background: rgba(15,23,42,0.85);
+    }
+
+    .window-dots {
+      display: flex;
+      gap: 0.45rem;
+    }
+
+    .window-dots span {
+      width: 0.62rem;
+      height: 0.62rem;
+      border-radius: 50%;
+      display: inline-block;
+    }
+
+    .window-dots span:nth-child(1) { background: #f87171; }
+    .window-dots span:nth-child(2) { background: #fbbf24; }
+    .window-dots span:nth-child(3) { background: #34d399; }
+
+    .window-content {
+      display: grid;
+      grid-template-columns: 0.8fr 1.2fr;
+      height: calc(100% - 53px);
+    }
+
+    .sidebar {
+      background: rgba(15,23,42,0.9);
+      border-right: 1px solid rgba(148,163,184,0.12);
+      padding: 1rem 0.75rem;
+    }
+
+    .side-item {
+      display: flex;
+      align-items: center;
+      gap: 0.6rem;
+      padding: 0.7rem 0.75rem;
+      border-radius: 0.8rem;
+      color: #dbeafe;
+      margin-bottom: 0.5rem;
+      font-size: 0.76rem;
+    }
+
+    .side-item.active {
+      background: rgba(99,102,241,0.14);
+      border: 1px solid rgba(129,140,248,0.3);
+      color: white;
+    }
+
+    .preview-pane {
+      padding: 1rem;
+      display: flex;
+      flex-direction: column;
+      gap: 0.8rem;
+    }
+
+    .preview-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 0.72rem;
+      color: #cbd5e1;
+    }
+
+    .preview-graph {
+      flex: 1;
+      border-radius: 1rem;
+      background: linear-gradient(180deg, rgba(99,102,241,0.08), rgba(15,23,42,0.15));
+      border: 1px solid rgba(148,163,184,0.1);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .preview-graph::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background:
+        linear-gradient(rgba(148,163,184,0.08) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(148,163,184,0.08) 1px, transparent 1px);
+      background-size: 16px 16px;
+    }
+
+    .preview-graph::after {
+      content: "";
+      position: absolute;
+      left: 10%;
+      right: 10%;
+      bottom: 16%;
+      height: 55%;
+      border-radius: 999px 999px 0 0;
+      background: linear-gradient(180deg, rgba(99,102,241,0.9), rgba(14,165,233,0.18));
+      transform: skewY(-8deg);
+      box-shadow: 0 0 30px rgba(99,102,241,0.4);
+    }
+
+    .feature-panel {
+      margin-top: 0.75rem;
+      background: rgba(15, 23, 42, 0.6);
+      border: 1px solid rgba(148,163,184,0.12);
+      border-radius: 1rem;
+      padding: 0.7rem;
+      display: grid;
+      gap: 0.5rem;
+    }
+
+    .feature-item {
+      width: 100%;
+      text-align: left;
+      background: rgba(30, 41, 59, 0.7);
+      border: 1px solid rgba(148,163,184,0.12);
+      color: #e2e8f0;
+      border-radius: 0.85rem;
+      padding: 0.75rem 0.8rem;
+      font-size: 0.78rem;
+      font-weight: 600;
+      transition: all 0.24s ease;
+      transform: translateX(0);
+    }
+
+    .feature-item:hover {
+      transform: translateX(2px);
+      border-color: rgba(129,140,248,0.28);
+    }
+
+    .feature-item.active {
+      background: rgba(99,102,241,0.14);
+      border-color: rgba(129,140,248,0.4);
+      color: #f4f4ff;
+    }
+
+    .feature-detail {
+      margin-top: 0.4rem;
+      border-radius: 0.9rem;
+      background: rgba(15,23,42,0.7);
+      border: 1px solid rgba(148,163,184,0.12);
+      padding: 0.85rem;
+      color: #cbd5e1;
+      font-size: 0.78rem;
+      line-height: 1.6;
+      transition: all 0.25s ease;
+    }
+
+    .feature-detail strong {
+      color: white;
+      display: block;
+      margin-bottom: 0.25rem;
+      font-size: 0.84rem;
+    }
+
+    .showcase-shell {
+      position: relative;
+      max-height: min(82vh, 760px);
+      overflow-y: auto;
+      background: linear-gradient(180deg, rgba(15,23,42,0.92), rgba(2,6,23,0.96));
+      border-radius: 1.5rem;
+      border: 1px solid rgba(148,163,184,0.12);
+      box-shadow: 0 30px 80px rgba(2, 6, 23, 0.7);
+      backdrop-filter: blur(24px);
+      -webkit-backdrop-filter: blur(24px);
+      animation: riseIn 0.5s ease;
+    }
+
+    @keyframes riseIn {
+      from { opacity: 0; transform: translateY(14px) scale(0.98); }
+      to { opacity: 1; transform: translateY(0) scale(1); }
+    }
+
+    .showcase-inner {
+      padding: 1.1rem;
+    }
+
+    .showcase-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding-bottom: 0.9rem;
+      border-bottom: 1px solid rgba(148,163,184,0.12);
+      margin-bottom: 1rem;
+    }
+
+    .showcase-header h2 {
+      font-size: 1.2rem;
+      font-weight: 800;
+      letter-spacing: -0.04em;
+      margin: 0;
+    }
+
+    .showcase-hero {
+      display: grid;
+      grid-template-columns: 1.2fr 0.8fr;
+      gap: 1rem;
+      padding: 0.6rem 0 1rem;
+      align-items: center;
+    }
+
+    .showcase-hero h3 {
+      font-size: clamp(2rem, 4vw, 3.5rem);
+      line-height: 1;
+      letter-spacing: -0.06em;
+      margin: 0.2rem 0 0.7rem;
+      font-weight: 800;
+    }
+
+    .showcase-hero p {
+      color: #cbd5e1;
+      line-height: 1.7;
+      margin: 0 0 1rem;
+    }
+
+    .showcase-cta-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.75rem;
+      margin-bottom: 1rem;
+    }
+
+    .showcase-demo {
+      border-radius: 1.2rem;
+      border: 1px solid rgba(148,163,184,0.12);
+      background: linear-gradient(180deg, rgba(15,23,42,0.9), rgba(15,23,42,0.7));
+      padding: 1rem;
+      min-height: 260px;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .showcase-demo::before {
+      content: "";
+      position: absolute;
+      inset: auto 10% 8% 10%;
+      height: 130px;
+      border-radius: 999px 999px 0 0;
+      background: linear-gradient(180deg, rgba(129,140,248,0.7), rgba(45,212,191,0.16));
+      transform: skewY(-10deg);
+      box-shadow: 0 0 40px rgba(99,102,241,0.4);
+    }
+
+    .feature-grid, .testimonial-grid, .pricing-grid {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 0.9rem;
+      margin-top: 1rem;
+    }
+
+    .mini-card {
+      background: rgba(15,23,42,0.7);
+      border: 1px solid rgba(148,163,184,0.12);
+      border-radius: 1rem;
+      padding: 1rem;
+    }
+
+    .mini-card h4 {
+      margin: 0.5rem 0 0.4rem;
+      font-size: 1rem;
+      font-weight: 700;
+    }
+
+    .mini-card p {
+      margin: 0;
+      color: #cbd5e1;
+      line-height: 1.6;
+      font-size: 0.8rem;
+    }
+
+    .mini-icon {
+      width: 2.2rem;
+      height: 2.2rem;
+      display: inline-flex;
+      border-radius: 0.8rem;
+      align-items: center;
+      justify-content: center;
+      background: rgba(99,102,241,0.12);
+      border: 1px solid rgba(129,140,248,0.24);
+      font-size: 1rem;
+    }
+
+    .testimonial-card {
+      background: rgba(15,23,42,0.7);
+      border: 1px solid rgba(148,163,184,0.12);
+      border-radius: 1rem;
+      padding: 1rem;
+    }
+
+    .testimonial-card p {
+      color: #dbeafe;
+      font-size: 0.82rem;
+      line-height: 1.7;
+    }
+
+    .person {
+      margin-top: 0.8rem;
+      display: flex;
+      align-items: center;
+      gap: 0.7rem;
+    }
+
+    .person-badge {
+      width: 2.1rem;
+      height: 2.1rem;
+      border-radius: 50%;
+      background: linear-gradient(135deg, #818cf8, #c084fc);
+      color: white;
+      font-weight: 800;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.75rem;
+    }
+
+    .person small {
+      display: block;
+      color: #94a3b8;
+    }
+
+    .pricing-grid .price-card {
+      background: rgba(15, 23, 42, 0.78);
+      border: 1px solid rgba(148,163,184,0.12);
+      border-radius: 1rem;
+      padding: 1rem;
+    }
+
+    .pricing-grid .price-card.featured {
+      background: linear-gradient(180deg, rgba(79,70,229,0.18), rgba(15,23,42,0.9));
+      border-color: rgba(129,140,248,0.35);
+    }
+
+    .showcase-footer {
+      margin-top: 1.2rem;
+      padding-top: 1rem;
+      border-top: 1px solid rgba(148,163,184,0.12);
+      text-align: center;
+      color: #94a3b8;
+      font-size: 0.76rem;
+    }
+
+    @media (max-width: 900px) {
+      .showcase-hero,
+      .feature-grid,
+      .testimonial-grid,
+      .pricing-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    @media (max-width: 640px) {
+      .showcase-inner {
+        padding: 0.85rem;
+      }
+      .showcase-header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 0.4rem;
+      }
+    }
+
+    .top-bar {
+      background: rgba(15, 23, 42, 0.72);
+      border-bottom: 1px solid rgba(148,163,184,0.15);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      box-shadow: 0 10px 30px rgba(15, 23, 42, 0.25);
+    }
+
+    .status-strip {
+      background: rgba(15, 23, 42, 0.62);
+      border-bottom: 1px solid rgba(148,163,184,0.12);
+      padding: 0.7rem 0.75rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 0.5rem;
+      overflow-x: auto;
+      scrollbar-width: none;
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+    }
+
+    .status-strip::-webkit-scrollbar { display: none; }
+
+    .status-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.45rem;
+      padding: 0.35rem 0.6rem;
+      border-radius: 999px;
+      background: rgba(15, 23, 42, 0.95);
+      border: 1px solid rgba(129, 140, 248, 0.3);
+      color: #c7d2fe;
+      font-size: 0.68rem;
+      font-weight: 600;
+      white-space: nowrap;
+    }
+
+    .status-dot {
+      width: 0.5rem;
+      height: 0.5rem;
+      border-radius: 999px;
+      background: var(--success);
+      box-shadow: 0 0 12px rgba(52, 211, 153, 0.8);
+    }
+
+    .metric-card {
+      min-width: 110px;
+      background: rgba(15, 23, 42, 0.85);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 0.55rem 0.7rem;
+    }
+
+    .metric-card small {
+      display: block;
+      color: var(--muted);
+      font-size: 0.62rem;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+
+    .metric-card strong {
+      display: block;
+      margin-top: 0.2rem;
+      font-size: 0.9rem;
+      color: var(--text);
+    }
+
+    .brand-mark {
+      width: 2.1rem;
+      height: 2.1rem;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 0.8rem;
+      background: linear-gradient(135deg, #6366f1, #a855f7);
+      box-shadow: 0 10px 25px rgba(99, 102, 241, 0.35);
+      font-size: 0.8rem;
+    }
+
+    .glass-btn,
+    .primary-btn,
+    .soft-btn {
+      transition: all 0.2s ease;
+    }
+
+    .glass-btn:hover,
+    .primary-btn:hover,
+    .soft-btn:hover {
+      transform: translateY(-1px);
+    }
+
+    .primary-btn {
+      background: linear-gradient(135deg, #4f46e5, #7c3aed);
+      box-shadow: 0 10px 25px rgba(99, 102, 241, 0.35);
+      border: 1px solid rgba(165, 180, 252, 0.4);
+    }
+
+    #editor-wrapper {
+      flex: 1;
+      min-height: 0;
+      position: relative;
+      background: linear-gradient(180deg, rgba(15, 23, 42, 0.82), rgba(2, 6, 23, 0.9));
+      overflow: hidden;
+      border-top: 1px solid rgba(148, 163, 184, 0.08);
+    }
+
     #monaco-container {
-      position: absolute; top: 0; left: 0; right: 0; bottom: 0;
-      width: 100%; height: 100%;
+      position: absolute;
+      top: 0; left: 0; right: 0; bottom: 0;
+      width: 100%;
+      height: 100%;
+      overflow: auto;
+      -webkit-overflow-scrolling: touch;
+      touch-action: pan-x pan-y;
+      user-select: text;
+      -webkit-user-select: text;
+    }
+
+    .monaco-editor,
+    .monaco-editor .overflow-guard,
+    .monaco-editor .monaco-scrollable-element,
+    .monaco-editor .view-overlays {
+      overflow: auto !important;
+      touch-action: pan-x pan-y;
+      user-select: text;
+      -webkit-user-select: text;
+    }
+
+    #section-view {
+      background: linear-gradient(180deg, rgba(15,23,42,0.95), rgba(2,6,23,0.9));
+      border-top: 1px solid rgba(148,163,184,0.08);
+    }
+
+    #preview-panel {
+      overflow: auto !important;
+      -webkit-overflow-scrolling: touch;
+      overscroll-behavior: contain;
+    }
+
+    #preview-panel .flex-1 {
+      overflow: auto !important;
+      -webkit-overflow-scrolling: touch;
+    }
+
+    #drawer {
+      background: rgba(15, 23, 42, 0.96);
+      border-right: 1px solid var(--border);
+      box-shadow: 18px 0 50px rgba(2, 6, 23, 0.7);
+      backdrop-filter: blur(20px);
+      overflow-y: auto;
+      -webkit-overflow-scrolling: touch;
+      overscroll-behavior: contain;
+    }
+
+    #pricing-modal > div {
+      background: linear-gradient(180deg, rgba(15,23,42,0.98), rgba(15,23,42,0.9));
+      box-shadow: 0 30px 80px rgba(15, 23, 42, 0.7);
+      border: 1px solid var(--border);
+    }
+
+    #toast {
+      box-shadow: 0 22px 55px rgba(15, 23, 42, 0.7);
+    }
+
+    .mobile-bottom-bar {
+      position: fixed;
+      left: 0.75rem;
+      right: 0.75rem;
+      bottom: calc(env(safe-area-inset-bottom) + 0.75rem);
+      z-index: 45;
+      display: none;
+      pointer-events: none;
+    }
+
+    .mobile-bottom-bar .inner {
+      pointer-events: auto;
+      background: rgba(15, 23, 42, 0.72);
+      border: 1px solid rgba(148, 163, 184, 0.18);
+      border-radius: 1.1rem;
+      box-shadow: 0 20px 40px rgba(2, 6, 23, 0.55);
+      backdrop-filter: blur(18px);
+      -webkit-backdrop-filter: blur(18px);
+      padding: 0.45rem;
+    }
+
+    .mobile-bottom-bar .grid {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 0.45rem;
+    }
+
+    .mobile-bottom-bar button {
+      border-radius: 0.85rem;
+      font-size: 0.72rem;
+      font-weight: 700;
+      padding: 0.8rem 0.5rem;
+      border: 1px solid transparent;
+      background: rgba(30, 41, 59, 0.9);
+      color: #e2e8f0;
+      transition: all 0.2s ease;
+      transform: translateY(0);
+    }
+
+    .mobile-bottom-bar button:active {
+      transform: scale(0.97);
+    }
+
+    .mobile-bottom-bar button.primary {
+      background: linear-gradient(135deg, #4f46e5, #7c3aed);
+      border-color: rgba(165, 180, 252, 0.4);
+      box-shadow: 0 10px 24px rgba(99, 102, 241, 0.35);
+    }
+
+    #drawer {
+      padding-bottom: calc(env(safe-area-inset-bottom) + 1rem);
+      overscroll-behavior: contain;
+    }
+
+    .touch-scroll {
+      -webkit-overflow-scrolling: touch;
+      overscroll-behavior-y: contain;
+    }
+
+    @media (max-width: 640px) {
+      .status-strip {
+        padding: 0.6rem 0.5rem;
+      }
+      .metric-card {
+        min-width: 90px;
+      }
+      #render-btn {
+        padding-left: 0.9rem;
+        padding-right: 0.9rem;
+      }
+      .mobile-bottom-bar {
+        display: block;
+      }
+      #drawer {
+        width: min(84vw, 320px);
+      }
+      #drawer-bg {
+        backdrop-filter: blur(6px);
+      }
+      #preview-panel .flex-1 {
+        padding-bottom: 5.5rem;
+      }
+      #section-view {
+        padding-bottom: 5rem;
+      }
+      .app-shell {
+        padding-bottom: 0.25rem;
+      }
+      #preview-panel {
+        overflow: auto;
+        -webkit-overflow-scrolling: touch;
+      }
     }
   </style>
 </head>
-<body class="bg-slate-950 text-white h-screen flex flex-col overflow-hidden">
+<body class="text-white h-screen flex flex-col overflow-hidden">
 
-  <header class="bg-slate-900 border-b border-slate-800 px-3 py-2.5 flex items-center justify-between shrink-0 z-30">
-    <div class="flex items-center gap-2">
-      <button id="menu-btn" class="p-2 rounded-lg bg-slate-800 active:bg-slate-700">
-        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/></svg>
-      </button>
-      <div class="flex items-center gap-2">
-        <div class="w-7 h-7 rounded-lg bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center font-bold text-xs">⚡</div>
-        <span class="font-bold text-sm">Renderora</span>
+  <div class="app-shell">
+    <header class="top-bar px-3 py-2.5 flex items-center justify-between shrink-0 z-30 sm:px-4">
+      <div class="flex items-center gap-2.5 min-w-0">
+        <button id="menu-btn" class="glass-btn p-2.5 rounded-xl bg-slate-800/80 border border-slate-700 active:bg-slate-700 text-slate-100">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/></svg>
+        </button>
+        <div class="flex items-center gap-2.5 min-w-0">
+          <div class="brand-mark">⚡</div>
+          <div class="min-w-0">
+            <div class="font-extrabold text-sm sm:text-base">Renderora</div>
+            <div class="text-[10px] text-slate-400 hidden sm:block">Cloud motion studio</div>
+          </div>
+        </div>
+      </div>
+      <div class="flex items-center gap-2 sm:gap-2.5">
+        <select id="template-select" class="bg-slate-800/90 text-[11px] sm:text-xs px-2 py-1.5 rounded-lg border border-slate-700 text-slate-200 max-w-[125px] shadow-inner focus:outline-none focus:ring-2 focus:ring-indigo-500/40">
+          <option value="">Examples</option>
+          <option value="circle">Circle</option>
+          <option value="square">Square→Circle</option>
+          <option value="math">Euler</option>
+          <option value="text">Text Anim</option>
+          <option value="freq">Freq Graph</option>
+          <option value="freq_anim">Freq Live Anim</option>
+          <option value="matplotlib">Sine Wave</option>
+          <option value="bars">Bar Chart</option>
+        </select>
+        <div id="auth-area">
+          <button id="login-btn" class="primary-btn bg-white text-gray-900 text-[11px] sm:text-xs font-semibold px-3 py-1.5 rounded-lg border border-white/70">Sign in</button>
+        </div>
+      </div>
+    </header>
+
+    <div class="status-strip">
+      <div class="status-pill"><span class="status-dot"></span> Live render queue</div>
+      <div class="metric-card hidden sm:block">
+        <small>Render time</small>
+        <strong>4.2s avg</strong>
+      </div>
+      <div class="metric-card hidden sm:block">
+        <small>Scene library</small>
+        <strong>8 templates</strong>
+      </div>
+      <div class="metric-card hidden md:block">
+        <small>Quality</small>
+        <strong>HD ready</strong>
       </div>
     </div>
-    <div class="flex items-center gap-2">
-      <select id="template-select" class="bg-slate-800 text-xs px-2 py-1.5 rounded-lg border border-slate-700 max-w-[130px]">
-        <option value="">Examples</option>
-        <option value="circle">Circle</option>
-        <option value="square">Square→Circle</option>
-        <option value="math">Euler</option>
-        <option value="text">Text Anim</option>
-        <option value="freq">Freq Graph</option>
-        <option value="freq_anim">Freq Live Anim</option>
-        <option value="matplotlib">Sine Wave</option>
-        <option value="bars">Bar Chart</option>
-      </select>
-      <div id="auth-area">
-        <button id="login-btn" class="bg-white text-gray-900 text-xs font-semibold px-3 py-1.5 rounded-lg">Sign in</button>
-      </div>
-    </div>
-  </header>
 
   <div id="drawer-bg" class="fixed inset-0 bg-black/60 z-40 hidden"></div>
   <div id="drawer" class="fixed top-0 left-0 bottom-0 w-72 bg-slate-900 border-r border-slate-800 z-50 -translate-x-full transition-transform duration-300 flex flex-col">
@@ -75,6 +977,18 @@
       <button onclick="showSection('library')" class="w-full text-left px-3 py-3 rounded-xl hover:bg-slate-800">📚 Library</button>
       <button onclick="openPricing()" class="w-full text-left px-3 py-3 rounded-xl hover:bg-slate-800 text-indigo-400">⭐ Upgrade Pro</button>
     </div>
+    <div class="px-3 pb-3">
+      <div class="feature-panel">
+        <button class="feature-item active" data-feature="rendering">⚡ Real-time rendering</button>
+        <button class="feature-item" data-feature="workflow">🧩 Workflow automation</button>
+        <button class="feature-item" data-feature="team">👥 Team collaboration</button>
+        <button class="feature-item" data-feature="quality">🎯 Premium quality</button>
+        <div id="feature-detail" class="feature-detail">
+          <strong>Real-time rendering</strong>
+          Turn scenes into visuals instantly with a clean workflow built for quick iteration and fast output.
+        </div>
+      </div>
+    </div>
     <div id="user-info" class="p-4 border-t border-slate-800 hidden">
       <div class="flex items-center gap-3 mb-3">
         <img id="user-pic" class="w-10 h-10 rounded-full border border-slate-700" alt="">
@@ -87,27 +1001,95 @@
     </div>
   </div>
 
-  <div id="pricing-modal" class="fixed inset-0 bg-black/70 z-50 hidden flex items-center justify-center p-4">
-    <div class="bg-slate-900 border border-slate-700 rounded-2xl max-w-sm w-full p-6 relative">
-      <button onclick="closePricing()" class="absolute top-3 right-3 text-slate-400 text-xl">×</button>
-      <div class="text-center mb-5">
-        <div class="text-3xl mb-2">⭐</div>
-        <h3 class="text-xl font-bold">Renderora Pro</h3>
-        <p class="text-indigo-400 font-bold text-2xl mt-1">$5<span class="text-sm text-slate-400 font-normal">/mo</span></p>
+  <div id="pricing-modal" class="fixed inset-0 bg-black/70 z-50 hidden flex items-center justify-center p-3 sm:p-5">
+    <div class="showcase-shell w-full max-w-5xl relative">
+      <button onclick="closePricing()" class="absolute top-3 right-3 z-10 text-slate-300 text-2xl bg-slate-800/70 rounded-full w-9 h-9 flex items-center justify-center">×</button>
+      <div class="showcase-inner">
+        <div class="showcase-header">
+          <div class="flex items-center gap-2.5">
+            <div class="brand-mark">⚡</div>
+            <h2>Renderora</h2>
+          </div>
+          <span class="text-[10px] uppercase tracking-[0.18em] text-slate-400">Startup Suite</span>
+        </div>
+
+        <div class="showcase-hero">
+          <div>
+            <div class="hero-badge"><span class="dot"></span> Render faster, smarter</div>
+            <h3>Ship cinematic ideas from code to output.</h3>
+            <p>Build motion graphics, data visuals, and product-ready scenes in one workflow. Renderora turns creative prototypes into polished media in minutes.</p>
+            <div class="showcase-cta-row">
+              <a href="https://jawadahmad1010.gumroad.com/l/jpmqie" target="_blank" rel="noopener" class="primary-cta">Upgrade Pro</a>
+              <button onclick="activateProAfterPurchase()" class="secondary-cta">Already purchased</button>
+            </div>
+            <div class="hero-metrics">
+              <div class="hero-metric"><strong>8k+</strong><span>renders</span></div>
+              <div class="hero-metric"><strong>4.2s</strong><span>avg speed</span></div>
+              <div class="hero-metric"><strong>99.9%</strong><span>uptime</span></div>
+            </div>
+          </div>
+          <div class="showcase-demo"></div>
+        </div>
+
+        <div>
+          <h3 class="text-xl font-bold mb-2">Why teams pick Renderora</h3>
+          <div class="feature-grid">
+            <div class="mini-card">
+              <div class="mini-icon">⚡</div>
+              <h4>Fast iteration</h4>
+              <p>Prototype and export visuals quickly without heavy pipeline overhead.</p>
+            </div>
+            <div class="mini-card">
+              <div class="mini-icon">🎨</div>
+              <h4>Creative control</h4>
+              <p>Use code-driven scenes, clean compositions, and premium-quality motion styles.</p>
+            </div>
+            <div class="mini-card">
+              <div class="mini-icon">📈</div>
+              <h4>Data storytelling</h4>
+              <p>Turn dashboards, charts, and metrics into visual narratives that feel polished.</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="mt-6">
+          <h3 class="text-xl font-bold mb-2">Simple plans</h3>
+          <div class="pricing-grid">
+            <div class="price-card">
+              <div class="label">Starter</div>
+              <h4>Free</h4>
+              <div class="price"><strong>$0</strong><span>/mo</span></div>
+              <ul>
+                <li>5 renders per day</li>
+                <li>Basic templates</li>
+                <li>Standard output</li>
+              </ul>
+            </div>
+            <div class="price-card featured">
+              <div class="label">Most click</div>
+              <h4>Pro</h4>
+              <div class="price"><strong>$5</strong><span>/mo</span></div>
+              <ul>
+                <li>20 renders per day</li>
+                <li>HD quality mode</li>
+                <li>Unlimited history</li>
+              </ul>
+            </div>
+            <div class="price-card">
+              <div class="label">Scale</div>
+              <h4>Team</h4>
+              <div class="price"><strong>$19</strong><span>/mo</span></div>
+              <ul>
+                <li>Shared workspace</li>
+                <li>Team templates</li>
+                <li>Priority support</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+
+        <div class="showcase-footer">Built for teams shipping ideas faster.</div>
       </div>
-      <ul class="text-sm text-slate-300 space-y-2.5 mb-6">
-        <li>✅ 20+ renders / day</li>
-        <li>✅ HD Quality</li>
-        <li>✅ Longer render time</li>
-        <li>✅ Unlimited history</li>
-      </ul>
-      <a href="https://jawadahmad1010.gumroad.com/l/jpmqie" target="_blank" rel="noopener"
-         class="block w-full text-center bg-indigo-600 hover:bg-indigo-500 py-3 rounded-xl font-semibold mb-3">
-        Buy Pro on Gumroad →
-      </a>
-      <button onclick="activateProAfterPurchase()" class="w-full text-xs text-slate-400 hover:text-white py-2">
-        I already purchased — Activate Pro
-      </button>
     </div>
   </div>
 
@@ -130,7 +1112,7 @@
       </div>
       <div id="editor-wrapper">
         <div id="monaco-container"></div>
-        <div id="section-view" class="absolute inset-0 bg-slate-950 p-4 overflow-y-auto hidden z-10"></div>
+        <div id="section-view" class="touch-scroll absolute inset-0 bg-slate-950 p-4 overflow-y-auto hidden z-10"></div>
       </div>
     </div>
 
@@ -139,8 +1121,8 @@
         <span class="text-sm text-slate-300">🎬 Output</span>
         <span id="render-time" class="text-xs text-slate-500"></span>
       </div>
-      <div class="flex-1 flex items-center justify-center bg-slate-950 p-4 relative">
-        <div id="placeholder" class="text-center">
+      <div class="flex-1 flex items-center justify-center bg-slate-950 p-4 relative overflow-auto">
+        <div id="placeholder" class="text-center w-full max-w-sm mx-auto select-none">
           <div class="w-16 h-16 mx-auto mb-4 rounded-2xl bg-slate-900 border border-slate-800 flex items-center justify-center text-3xl">🎞️</div>
           <p class="text-slate-400 text-sm">Ready to render</p>
           <p class="text-slate-600 text-xs mt-1">Any length code supported</p>
@@ -159,9 +1141,20 @@
     </div>
   </main>
 
-  <div id="toast" class="fixed bottom-6 left-1/2 -translate-x-1/2 bg-slate-800 border border-slate-700 px-4 py-2.5 rounded-2xl text-sm flex items-center gap-2 opacity-0 translate-y-8 transition-all z-50 shadow-xl max-w-[90vw]">
+  <div id="toast" class="fixed bottom-6 left-1/2 -translate-x-1/2 bg-slate-800/95 border border-slate-700 px-4 py-2.5 rounded-2xl text-sm flex items-center gap-2 opacity-0 translate-y-8 transition-all z-50 shadow-xl max-w-[90vw] backdrop-blur-sm">
     <span id="toast-icon">✓</span>
     <span id="toast-msg"></span>
+  </div>
+
+  <div class="mobile-bottom-bar" aria-label="Quick actions">
+    <div class="inner">
+      <div class="grid">
+        <button type="button" data-mobile-action="editor">Editor</button>
+        <button type="button" data-mobile-action="history">History</button>
+        <button type="button" class="primary" id="mobile-render-btn">Render</button>
+      </div>
+    </div>
+  </div>
   </div>
 
 <script>
@@ -201,13 +1194,15 @@ class SquareToCircle(Scene):
         self.play(Transform(sq, circle))
         self.wait()`,
 
+    // Euler — correct JS escape so Python gets r"e^{i\pi} + 1 = 0"
     math: `from manim import *
 
 class FormulaScene(Scene):
     def construct(self):
-        eq = MathTex(r"e^{i\\\\pi} + 1 = 0")
+        eq = MathTex(r"e^{i\\pi} + 1 = 0")
+        eq.scale(1.5)
         self.play(Write(eq))
-        self.wait()`,
+        self.wait(1)`,
 
     text: `from manim import *
 
@@ -234,7 +1229,7 @@ ax.set_facecolor("#0f172a")
 ax.plot(x, y, color="#818cf8", linewidth=2.5)
 ax.set_title(f"Sine Wave  |  frequency = {FREQUENCY}", color="white", fontsize=14)
 ax.set_xlabel("x", color="#94a3b8")
-ax.set_ylabel("sin(f·x)", color="#94a3b8")
+ax.set_ylabel("sin(f x)", color="#94a3b8")
 ax.tick_params(colors="#94a3b8")
 ax.grid(True, alpha=0.25, color="#475569")
 for spine in ax.spines.values():
@@ -249,7 +1244,7 @@ fig, ax = plt.subplots(figsize=(9, 4), facecolor="#0f172a")
 ax.set_facecolor("#0f172a")
 ax.set_xlim(0, 4 * np.pi)
 ax.set_ylim(-1.3, 1.3)
-ax.set_title("Frequency sweep (low → high)", color="white")
+ax.set_title("Frequency sweep (low to high)", color="white")
 ax.tick_params(colors="#94a3b8")
 ax.grid(True, alpha=0.25)
 for spine in ax.spines.values():
@@ -387,8 +1382,11 @@ plt.tight_layout()`
     if (editor) setTimeout(() => editor.layout(), 100);
   }
   function showPreview() {
+    const previewPanel = document.getElementById('preview-panel');
+    previewPanel.classList.remove('hidden');
+    previewPanel.style.overflow = 'auto';
+    previewPanel.style.webkitOverflowScrolling = 'touch';
     document.getElementById('editor-panel').classList.add('hidden');
-    document.getElementById('preview-panel').classList.remove('hidden');
     document.getElementById('tab-preview').classList.add('text-indigo-400', 'border-indigo-500');
     document.getElementById('tab-preview').classList.remove('text-slate-400', 'border-transparent');
     document.getElementById('tab-editor').classList.add('text-slate-400', 'border-transparent');
@@ -396,6 +1394,51 @@ plt.tight_layout()`
   }
   document.getElementById('tab-editor').onclick = showEditor;
   document.getElementById('tab-preview').onclick = showPreview;
+
+  const featureDetails = {
+    rendering: {
+      title: 'Real-time rendering',
+      text: 'Turn scenes into visuals instantly with a clean workflow built for quick iteration and fast output.'
+    },
+    workflow: {
+      title: 'Workflow automation',
+      text: 'Jump between templates, editing, preview, and exports with a streamlined product workflow made for creators.'
+    },
+    team: {
+      title: 'Team collaboration',
+      text: 'Keep prototypes, history, and output organized so product, marketing, and design teams can move together.'
+    },
+    quality: {
+      title: 'Premium quality',
+      text: 'Choose polished output modes, HD-ready scenes, and high-impact visuals to make every render feel production grade.'
+    }
+  };
+
+  document.querySelectorAll('[data-feature]').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      const key = btn.getAttribute('data-feature');
+      const detail = featureDetails[key];
+      if (!detail) return;
+      document.querySelectorAll('.feature-item').forEach(item => item.classList.remove('active'));
+      btn.classList.add('active');
+      document.getElementById('feature-detail').innerHTML = `<strong>${detail.title}</strong>${detail.text}`;
+    });
+  });
+
+  document.querySelectorAll('[data-mobile-action]').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      const mode = btn.getAttribute('data-mobile-action');
+      if (mode === 'editor') {
+        showSection('editor');
+      } else if (mode === 'history') {
+        showSection('history');
+      }
+    });
+  });
+
+  document.getElementById('mobile-render-btn').onclick = () => {
+    document.getElementById('render-btn').click();
+  };
 
   document.getElementById('q-low').onclick = () => {
     quality = 'LOW';
@@ -411,21 +1454,34 @@ plt.tight_layout()`
 
   require.config({ paths: { vs: 'https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.45.0/min/vs' } });
   require(['vs/editor/editor.main'], function () {
+    const isMobile = window.innerWidth < 640;
     editor = monaco.editor.create(document.getElementById('monaco-container'), {
       value: localStorage.getItem('manim_code') || defaultCode,
       language: 'python',
       theme: 'vs-dark',
-      fontSize: window.innerWidth < 640 ? 13 : 14,
+      fontSize: isMobile ? 13 : 14,
       fontFamily: 'JetBrains Mono, monospace',
       minimap: { enabled: false },
       automaticLayout: true,
-      scrollBeyondLastLine: false,
-      padding: { top: 12 },
+      scrollBeyondLastLine: true,
+      padding: { top: 12, bottom: 24 },
       lineNumbers: 'on',
-      wordWrap: 'on',
-      wrappingIndent: 'indent'
+      wordWrap: 'off',
+      wrappingIndent: 'indent',
+      scrollbar: {
+        vertical: 'auto',
+        horizontal: 'auto',
+        verticalScrollbarSize: 10,
+        horizontalScrollbarSize: 10,
+        alwaysConsumeMouseWheel: false,
+        useShadows: false
+      },
+      mouseWheelZoom: false,
+      smoothScrolling: true,
+      scrollBeyondLastLine: false
     });
     [100, 400, 800].forEach(t => setTimeout(() => editor.layout(), t));
+    window.addEventListener('resize', () => editor && editor.layout());
     editor.onDidChangeModelContent(() => {
       clearTimeout(window.saveT);
       window.saveT = setTimeout(() => localStorage.setItem('manim_code', editor.getValue()), 800);
@@ -458,6 +1514,9 @@ plt.tight_layout()`
 
     showPreview();
     const start = Date.now();
+    const previewPanel = document.getElementById('preview-panel');
+    previewPanel.style.overflow = 'auto';
+    previewPanel.scrollTop = 0;
     document.getElementById('error-box').classList.add('hidden');
     document.getElementById('video').classList.add('hidden');
     document.getElementById('image').classList.add('hidden');
@@ -553,7 +1612,6 @@ plt.tight_layout()`
   document.getElementById('signout-btn').onclick = signOut;
 
   window.onload = () => {
-    // ===== Gumroad redirect: ?pro=true → auto unlock =====
     try {
       const params = new URLSearchParams(window.location.search);
       if (params.get('pro') === 'true') {
